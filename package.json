@@ -1,0 +1,53 @@
+{
+  "name": "aws-auto-role-switch",
+  "version": "0.1.0",
+  "description": "",
+  "license": "Apache-2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wxt -b chrome --mv3",
+    "dev:firefox": "wxt -b firefox --mv3",
+    "prepare": "wxt prepare",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run build:chrome",
+    "build:chrome": "wxt build -b chrome --mv3",
+    "build:edge": "wxt build -b edge --mv3",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "build:safari": "wxt build -b safari --mv3",
+    "build:all": "npm run build:chrome && npm run build:edge && npm run build:firefox && npm run build:safari",
+    "zip:chrome": "wxt zip -b chrome --mv3",
+    "zip:edge": "wxt zip -b edge --mv3",
+    "zip:firefox": "wxt zip -b firefox --mv3",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run build:all"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
+  "dependencies": {
+    "lucide-react": "1.28.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@wxt-dev/auto-icons": "1.1.2",
+    "@wxt-dev/module-react": "1.2.2",
+    "eslint": "10.8.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.9.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.66.0",
+    "vite": "8.2.0",
+    "web-ext": "10.6.0",
+    "wxt": "0.21.3"
+  }
+}

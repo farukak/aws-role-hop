@@ -1,0 +1,28 @@
+# Dependencies and generated output
+node_modules/
+.output/
+.wxt/
+coverage/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+.aws/
+*.credentials
+*.key
+*.pem
+*.p12
+*.mobileprovision
+
+# Editor and operating system files
+.DS_Store
+.idea/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+
+# Apple build output
+DerivedData/
