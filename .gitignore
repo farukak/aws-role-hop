@@ -18,6 +18,7 @@ coverage/
 # Editor and operating system files
 .DS_Store
 .idea/
+.kiro/
 *.swp
 
 # Logs
@@ -26,3 +27,6 @@ npm-debug.log*
 
 # Apple build output
 DerivedData/
+
+# Local reference extension used for behavior comparison
+6.2.1_0/

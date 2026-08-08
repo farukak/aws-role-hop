@@ -1,0 +1,11 @@
+{
+  "extensionName": {
+    "message": "AWS Role Hop"
+  },
+  "extensionDescription": {
+    "message": "Launch AWS Console roles and Identity Center profiles from private, local-only lists."
+  },
+  "openExtension": {
+    "message": "Open AWS Role Hop"
+  }
+}

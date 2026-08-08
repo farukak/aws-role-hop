@@ -1,0 +1,72 @@
+name: Bug report
+description: Report incorrect behavior in AWS Role Hop
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities here. Use private vulnerability
+        reporting from the repository **Security** tab instead, as described in
+        [SECURITY.md](../blob/main/SECURITY.md).
+
+        Never include AWS access keys, session tokens, real account IDs, or
+        organization data in an issue.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the extension
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Brave
+        - Microsoft Edge
+        - Firefox
+        - Safari
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Browser and AWS Role Hop version
+      placeholder: 'Chrome 141, AWS Role Hop 0.1.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: profile-type
+    attributes:
+      label: Profile type involved
+      options:
+        - IAM role
+        - IAM Identity Center
+        - Both
+        - Not profile specific
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Console errors or a redacted config snippet, with all account identifiers replaced.

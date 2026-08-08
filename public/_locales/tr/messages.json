@@ -1,0 +1,11 @@
+{
+  "extensionName": {
+    "message": "AWS Role Hop"
+  },
+  "extensionDescription": {
+    "message": "AWS Console rollerini ve Identity Center profillerini özel, yalnızca yerel listelerden açın."
+  },
+  "openExtension": {
+    "message": "AWS Role Hop'u aç"
+  }
+}

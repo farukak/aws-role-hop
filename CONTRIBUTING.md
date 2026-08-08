@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving RoleHop. Changes should keep the extension focused, private, and easy to audit.
+Thank you for improving AWS Role Hop. Changes should keep the extension focused, private, and easy to audit.
 
 ## Before opening a change
 

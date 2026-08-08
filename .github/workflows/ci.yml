@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate source and browser builds
+        run: npm run check
+
+      - name: Validate the Firefox add-on package
+        run: npx web-ext lint --source-dir .output/firefox-mv3
+
+      - name: Verify store packages can be produced
+        run: npm run zip:chrome && npm run zip:edge && npm run zip:firefox
+
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
