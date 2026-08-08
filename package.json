@@ -1,10 +1,26 @@
 {
-  "name": "aws-auto-role-switch",
+  "name": "aws-role-hop",
   "version": "0.1.0",
-  "description": "",
+  "description": "AWS Role Hop — a private, local-only AWS Management Console profile launcher for IAM roles and IAM Identity Center permission sets.",
   "license": "Apache-2.0",
   "private": true,
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/farukak/aws-role-hop.git"
+  },
+  "homepage": "https://github.com/farukak/aws-role-hop#readme",
+  "bugs": {
+    "url": "https://github.com/farukak/aws-role-hop/issues"
+  },
+  "keywords": [
+    "aws",
+    "iam",
+    "identity-center",
+    "browser-extension",
+    "manifest-v3",
+    "wxt"
+  ],
   "scripts": {
     "dev": "wxt -b chrome --mv3",
     "dev:firefox": "wxt -b firefox --mv3",
@@ -13,6 +29,11 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e:built": "playwright test",
+    "test:e2e": "npm run build:chrome && npm run test:e2e:built",
     "build": "npm run build:chrome",
     "build:chrome": "wxt build -b chrome --mv3",
     "build:edge": "wxt build -b edge --mv3",
@@ -22,10 +43,11 @@
     "zip:chrome": "wxt zip -b chrome --mv3",
     "zip:edge": "wxt zip -b edge --mv3",
     "zip:firefox": "wxt zip -b firefox --mv3",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run build:all"
+    "lint:firefox": "npm run build:firefox && web-ext lint --source-dir .output/firefox-mv3",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:coverage -- --maxWorkers=2 && npm run build:all && npm run test:e2e:built"
   },
   "engines": {
-    "node": ">=22.12.0",
+    "node": ">=24.0.0",
     "npm": ">=10.0.0"
   },
   "dependencies": {
@@ -36,17 +58,23 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.62.1",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
+    "@vitest/coverage-v8": "4.1.10",
     "@wxt-dev/auto-icons": "1.1.2",
     "@wxt-dev/module-react": "1.2.2",
     "eslint": "10.8.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "globals": "17.9.0",
+    "jsdom": "27.0.1",
     "prettier": "3.9.6",
     "typescript": "5.9.3",
     "typescript-eslint": "8.66.0",
     "vite": "8.2.0",
+    "vitest": "4.1.10",
     "web-ext": "10.6.0",
     "wxt": "0.21.3"
   }

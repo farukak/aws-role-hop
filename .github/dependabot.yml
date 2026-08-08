@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      eslint-and-prettier:
+        patterns:
+          - '@eslint/*'
+          - 'eslint*'
+          - 'prettier'
+          - 'typescript-eslint'
+      react:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react'
+          - '@types/react-dom'
+      build-and-test:
+        patterns:
+          - 'wxt'
+          - '@wxt-dev/*'
+          - 'vite'
+          - 'vitest'
+          - '@vitest/*'
+          - 'web-ext'
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

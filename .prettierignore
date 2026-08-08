@@ -1,4 +1,7 @@
 .output
 .wxt
+.kiro
+coverage
 node_modules
 package-lock.json
+6.2.1_0

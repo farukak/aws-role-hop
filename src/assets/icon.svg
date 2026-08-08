@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="AWS Role Hop">
+  <rect width="128" height="128" rx="30" fill="#646be0" />
+  <path
+    d="M30 100 Q56 24 100 62"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="18"
+    stroke-linecap="round"
+  />
+</svg>
