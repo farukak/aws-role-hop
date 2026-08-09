@@ -95,7 +95,7 @@ test('IAM launches post directly across consecutive Console reloads', async ({
         accountId: '333333333333',
         roleName: 'AuditRole',
         environment: 'shared',
-        region: 'us-east-1',
+        region: 'ap-southeast-2',
       },
     ],
   });
@@ -154,6 +154,11 @@ test('IAM launches post directly across consecutive Console reloads', async ({
     'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
   );
   expect(switchRequest.url()).not.toContain('?account=');
+  await consolePage.waitForURL(
+    'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+    { waitUntil: 'load' },
+  );
+  await consolePage.waitForSelector('#aws-console-stub');
 
   await consolePage.goto('https://us-east-1.console.aws.amazon.com/console/home?region=us-east-1');
   await consolePage.waitForSelector('#aws-console-stub');
@@ -198,4 +203,12 @@ test('IAM launches post directly across consecutive Console reloads', async ({
   expect(secondFields.get('account')).toBe('333333333333');
   expect(secondFields.get('roleName')).toBe('AuditRole');
   expect(secondFields.get('displayName')).toBe('Audit viewer');
+  expect(decodeURIComponent(secondFields.get('redirect_uri') ?? '')).toBe(
+    'https://us-east-1.console.aws.amazon.com/console/home?region=ap-southeast-2',
+  );
+  await consolePage.waitForURL(
+    'https://us-east-1.console.aws.amazon.com/console/home?region=ap-southeast-2',
+    { waitUntil: 'load' },
+  );
+  await consolePage.waitForSelector('#aws-console-stub');
 });

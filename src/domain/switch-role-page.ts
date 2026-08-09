@@ -26,6 +26,33 @@ const DEFAULT_SIGN_IN_HOSTS: Record<Partition, string> = {
   'aws-cn': 'signin.amazonaws.cn',
 };
 
+const CONSOLE_HOST_SUFFIXES: Record<Partition, readonly string[]> = {
+  aws: ['console.aws.amazon.com', 'health.aws.amazon.com', 'lightsail.aws.amazon.com'],
+  'aws-us-gov': ['console.amazonaws-us-gov.com', 'phd.amazonaws-us-gov.com'],
+  'aws-cn': ['console.amazonaws.cn', 'health.amazonaws.cn'],
+};
+
+export function isAllowedAwsConsoleDestination(value: string, partition: Partition): boolean {
+  try {
+    const destination = new URL(value);
+    if (
+      destination.protocol !== 'https:' ||
+      destination.username !== '' ||
+      destination.password !== '' ||
+      destination.port !== ''
+    ) {
+      return false;
+    }
+
+    const hostname = destination.hostname.toLowerCase();
+    return CONSOLE_HOST_SUFFIXES[partition].some(
+      (suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`),
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSessionMetadata {
   const content = document
     .querySelector<HTMLMetaElement>('meta[name="awsc-session-data"]')
@@ -84,11 +111,37 @@ export function buildAwsRedirectUrl(
   return redirect.toString();
 }
 
+export async function resolveAwsCsrfValue(value: unknown): Promise<string> {
+  const resolved = await Promise.resolve(value);
+  let csrf = '';
+
+  if (typeof resolved === 'string') {
+    csrf = resolved;
+  } else if (typeof resolved === 'number' && Number.isFinite(resolved)) {
+    csrf = resolved.toString();
+  } else if (typeof resolved === 'bigint') {
+    csrf = resolved.toString();
+  } else if (resolved instanceof String) {
+    csrf = resolved.valueOf();
+  } else if (Array.isArray(resolved) && resolved.length === 1 && typeof resolved[0] === 'string') {
+    csrf = resolved[0];
+  }
+
+  if (!csrf.trim()) {
+    throw new Error('AWS Console did not provide a CSRF value. Refresh the Console and try again.');
+  }
+  return csrf;
+}
+
 export function buildAwsStandardSwitchFields(
   request: RoleSwitchRequest,
   currentUrl: string,
   csrf: string,
 ): AwsStandardSwitchFields {
+  if (typeof csrf !== 'string' || !csrf.trim()) {
+    throw new Error('AWS Console did not provide a CSRF value. Refresh the Console and try again.');
+  }
+
   return {
     mfaNeeded: '0',
     action: 'switchFromBasis',

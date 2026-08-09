@@ -292,6 +292,27 @@ const TURKISH_MESSAGES = {
   'All local AWS Role Hop data was reset.': 'Tüm yerel AWS Role Hop verileri sıfırlandı.',
   'Could not reset local data.': 'Yerel veriler sıfırlanamadı.',
   'Could not save the preference.': 'Tercih kaydedilemedi.',
+  'Release notes': 'Sürüm notları',
+  "What's new": 'Yenilikler',
+  'Recent improvements included in this local build.':
+    'Bu yerel sürüme dahil edilen son iyileştirmeler.',
+  'Version {version}': 'Sürüm {version}',
+  'Released {date}': '{date} tarihinde yayınlandı',
+  'Back to preferences': 'Tercihlere dön',
+  'View full changelog on GitHub': 'Tüm değişiklik günlüğünü GitHub’da görüntüle',
+  'Built by Faruk AK on GitHub': 'GitHub’da Faruk AK tarafından geliştirildi',
+  'Organize AWS roles and Identity Center profiles in named local lists.':
+    'AWS rollerini ve Identity Center profillerini adlandırılmış yerel listelerde düzenle.',
+  "Switch IAM roles through AWS's native flow without an intermediate page.":
+    'IAM rollerine ara sayfa olmadan AWS’nin yerel akışı üzerinden geçiş yap.',
+  'Import AWS config and Organizations JSON without retaining raw configuration.':
+    'Ham yapılandırmayı saklamadan AWS config ve Organizations JSON verilerini içe aktar.',
+  'Open the import screen directly from the empty popup.':
+    'Boş popup üzerinden içe aktarma ekranını doğrudan aç.',
+  'Use English or Turkish with light, dark, or system themes.':
+    'Açık, koyu veya sistem temasıyla İngilizce ya da Türkçe kullan.',
+  'Benefit from safer consecutive switching, bounded imports, and clearer errors.':
+    'Daha güvenli ardışık geçişlerden, sınırlı içe aktarmalardan ve daha açık hatalardan yararlan.',
   'Something went wrong': 'Bir şeyler ters gitti',
   'AWS Role Hop could not render this view. Reload the extension to try again.':
     'AWS Role Hop bu görünümü oluşturamadı. Yeniden denemek için uzantıyı yükle.',
@@ -316,7 +337,7 @@ export function resolveLanguage(
 ): Language {
   if (preference !== 'system') return preference;
   const detectedLanguage = browserLanguage ?? browser.i18n.getUILanguage();
-  return detectedLanguage.toLocaleLowerCase().startsWith('tr') ? 'tr' : 'en';
+  return detectedLanguage.toLowerCase().startsWith('tr') ? 'tr' : 'en';
 }
 
 export function I18nProvider({

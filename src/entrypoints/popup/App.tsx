@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect, type KeyboardEvent } from 'react';
 import {
   ArrowRight,
+  FileInput,
   Layers3,
   Plus,
   Search,
@@ -54,8 +55,8 @@ export function PopupApp() {
     setActionError(null);
     setBusyProfileId(profile.id);
     try {
-      await markProfileUsed(profile.id);
       await navigateToProfile(profile, state.settings.openBehavior);
+      await markProfileUsed(profile.id);
       window.close();
     } catch (switchError: unknown) {
       setActionError(
@@ -119,6 +120,19 @@ export function PopupApp() {
     } catch (listError: unknown) {
       setActionError(
         listError instanceof Error ? listError.message : t('Could not select the profile list.'),
+      );
+    }
+  }
+
+  async function openImport(): Promise<void> {
+    setActionError(null);
+    try {
+      const url = browser.runtime.getURL('/options.html#import');
+      await browser.tabs.create({ url });
+      window.close();
+    } catch (optionsError: unknown) {
+      setActionError(
+        optionsError instanceof Error ? optionsError.message : t('Could not open settings.'),
       );
     }
   }
@@ -264,10 +278,16 @@ export function PopupApp() {
             'Create an IAM role or Identity Center shortcut. Everything stays in this browser.',
           )}
           action={
-            <button className="primary-button" type="button" onClick={() => void openOptions()}>
-              <Plus size={16} aria-hidden="true" />
-              {t('Add profile')}
-            </button>
+            <div className="popup-empty-actions">
+              <button className="primary-button" type="button" onClick={() => void openOptions()}>
+                <Plus size={16} aria-hidden="true" />
+                {t('Add profile')}
+              </button>
+              <button className="secondary-button" type="button" onClick={() => void openImport()}>
+                <FileInput size={16} aria-hidden="true" />
+                {t('Import profiles')}
+              </button>
+            </div>
           }
         />
       ) : profiles.length === 0 ? (

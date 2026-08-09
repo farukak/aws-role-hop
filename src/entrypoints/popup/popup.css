@@ -385,3 +385,10 @@ body {
   font-weight: 650;
   text-overflow: ellipsis;
 }
+
+.popup-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}

@@ -4,7 +4,9 @@ import {
   buildAwsRedirectUrl,
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
+  isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
+  resolveAwsCsrfValue,
   resolveAwsSignInHost,
 } from './switch-role-page';
 import type { RoleSwitchRequest } from './role-handoff';
@@ -66,6 +68,49 @@ describe('AWS switch endpoints', () => {
   });
 });
 
+describe('AWS switch destinations', () => {
+  it.each([
+    ['https://console.aws.amazon.com/console/home', 'aws'],
+    ['https://session.eu-west-1.console.aws.amazon.com/console/home', 'aws'],
+    ['https://health.aws.amazon.com/health/home', 'aws'],
+    ['https://us-gov-west-1.console.amazonaws-us-gov.com/', 'aws-us-gov'],
+    ['https://cn-north-1.console.amazonaws.cn/', 'aws-cn'],
+  ] as const)('accepts a partition-correct Console destination %s', (destination, partition) => {
+    expect(isAllowedAwsConsoleDestination(destination, partition)).toBe(true);
+  });
+
+  it.each([
+    ['http://console.aws.amazon.com/', 'aws'],
+    ['https://console.aws.amazon.com.evil.test/', 'aws'],
+    ['https://placeholder-user@console.aws.amazon.com/', 'aws'],
+    ['https://console.aws.amazon.com:8443/', 'aws'],
+    ['https://console.amazonaws.cn/', 'aws'],
+    ['not-a-url', 'aws'],
+  ] as const)(
+    'rejects an unsafe or partition-mismatched destination %s',
+    (destination, partition) => {
+      expect(isAllowedAwsConsoleDestination(destination, partition)).toBe(false);
+    },
+  );
+});
+
+describe('AWS CSRF values', () => {
+  it.each([
+    ['primitive string', 'csrf-value'],
+    ['boxed string', new String('csrf-value')],
+    ['asynchronous string', Promise.resolve('csrf-value')],
+  ])('normalizes a %s', async (_label, value) => {
+    await expect(resolveAwsCsrfValue(value)).resolves.toBe('csrf-value');
+  });
+
+  it.each([undefined, null, {}, Promise.resolve({})])(
+    'rejects a missing or opaque value',
+    async (value) => {
+      await expect(resolveAwsCsrfValue(value)).rejects.toThrow(/did not provide a CSRF value/i);
+    },
+  );
+});
+
 describe('AWS switch POST data', () => {
   it('matches AWS native standard-switch fields and carries the profile color', () => {
     expect(
@@ -89,6 +134,15 @@ describe('AWS switch POST data', () => {
     });
   });
 
+  it.each(['', '   '])('rejects a missing CSRF value', (csrf) => {
+    expect(() =>
+      buildAwsStandardSwitchFields(
+        REQUEST,
+        'https://eu-west-1.console.aws.amazon.com/console/home',
+        csrf,
+      ),
+    ).toThrow(/did not provide a CSRF value/i);
+  });
   it('removes the multi-session hostname prefix and preserves other destination data', () => {
     expect(
       buildAwsRedirectUrl(

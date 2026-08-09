@@ -1,5 +1,6 @@
 import {
   inferEnvironment,
+  PROFILE_LIMIT,
   profileDraftSchema,
   type Partition,
   type ProfileDraft,
@@ -113,6 +114,7 @@ export function parseAwsConfig(input: string): AwsConfigImportResult {
 
   const profiles: ProfileDraft[] = [];
   const ignored: IgnoredSection[] = [];
+  let profileLimitReported = false;
 
   for (const section of sections) {
     if (/^sso-session\s+/i.test(section.name)) continue;
@@ -123,8 +125,17 @@ export function parseAwsConfig(input: string): AwsConfigImportResult {
       referencedSources,
       issues,
     );
-    if (outcome.kind === 'profile') profiles.push(outcome.draft);
-    else if (outcome.kind === 'ignored') {
+    if (outcome.kind === 'profile') {
+      if (profiles.length < PROFILE_LIMIT) {
+        profiles.push(outcome.draft);
+      } else if (!profileLimitReported) {
+        issues.push({
+          section: 'Import limit',
+          message: `Only the first ${PROFILE_LIMIT} valid profiles are shown and can be imported.`,
+        });
+        profileLimitReported = true;
+      }
+    } else if (outcome.kind === 'ignored') {
       ignored.push({ section: section.name, reason: outcome.reason });
     }
   }
@@ -261,7 +272,7 @@ function profileSectionKey(value: string): string {
   return value
     .replace(/^profile\s+/i, '')
     .trim()
-    .toLocaleLowerCase();
+    .toLowerCase();
 }
 
 function validateDraft(value: unknown, section: Section, issues: ImportIssue[]): SectionOutcome {

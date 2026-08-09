@@ -18,6 +18,7 @@ import {
 import {
   DEFAULT_PROFILE_LIST_ID,
   PARTITION_OPTIONS,
+  PROFILE_LIST_NAME_MAX_LENGTH,
   ROLE_NAME_MAX_LENGTH,
   type AppState,
   type Partition,
@@ -65,6 +66,7 @@ aws organizations list-accounts`;
 
 const UNKNOWN_FORMAT_MESSAGE =
   'This does not look like an AWS CLI config or aws organizations list-accounts output. Expected INI sections such as [profile name], or JSON containing an "Accounts" array.';
+const IMPORT_MAX_BYTES = 1_000_000;
 
 type Preview =
   | { format: 'aws-config'; result: AwsConfigImportResult }
@@ -122,24 +124,28 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
 
   const ignored: IgnoredSection[] = preview?.format === 'aws-config' ? preview.result.ignored : [];
 
+  const configSize = useMemo(() => new Blob([config]).size, [config]);
+  const configTooLarge = configSize > IMPORT_MAX_BYTES;
+
   useEffect(() => {
-    if (!config.trim() || new Blob([config]).size > 1_000_000) return;
+    if (!config.trim() || configTooLarge) return;
 
     const timeout = window.setTimeout(() => {
       setPreview(createPreview(config));
       setAnalyzing(false);
     }, 220);
     return () => window.clearTimeout(timeout);
-  }, [config]);
+  }, [config, configTooLarge]);
 
   function updateConfig(next: string): void {
+    const nextTooLarge = new Blob([next]).size > IMPORT_MAX_BYTES;
     setConfig(next);
     setPreview(null);
-    setAnalyzing(Boolean(next.trim()) && new Blob([next]).size <= 1_000_000);
+    setAnalyzing(Boolean(next.trim()) && !nextTooLarge);
   }
 
   async function readConfigFile(file: File): Promise<void> {
-    if (file.size > 1_000_000) {
+    if (file.size > IMPORT_MAX_BYTES) {
       setPreview(null);
       notify(t('Config files must be smaller than 1 MB.'), 'error');
       return;
@@ -265,6 +271,7 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                 <button
                   type="button"
                   data-selected={destinationMode === 'existing' || undefined}
+                  aria-pressed={destinationMode === 'existing'}
                   onClick={() => setDestinationMode('existing')}
                 >
                   {t('Existing list')}
@@ -272,6 +279,7 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                 <button
                   type="button"
                   data-selected={destinationMode === 'new' || undefined}
+                  aria-pressed={destinationMode === 'new'}
                   onClick={() => setDestinationMode('new')}
                 >
                   {t('New list')}
@@ -325,7 +333,7 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                     onChange={(event) => setNewListName(event.target.value)}
                     placeholder={t('For example, Platform accounts')}
                     autoComplete="off"
-                    maxLength={64}
+                    maxLength={PROFILE_LIST_NAME_MAX_LENGTH}
                     aria-label={t('New profile list name')}
                   />
                 </label>
@@ -357,14 +365,18 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                 {config && <span>{t('{count} characters', { count: config.length })}</span>}
               </div>
               {config && (
-                <strong data-tone={preview?.format === 'unknown' ? 'error' : 'ready'}>
-                  {analyzing
-                    ? t('Checking configuration…')
-                    : preview?.format === 'unknown'
-                      ? t('Format not recognized')
-                      : profiles.length === 1
-                        ? t('1 valid profile is ready.')
-                        : t('{count} valid profiles are ready.', { count: profiles.length })}
+                <strong
+                  data-tone={configTooLarge || preview?.format === 'unknown' ? 'error' : 'ready'}
+                >
+                  {configTooLarge
+                    ? t('Pasted configuration must be smaller than 1 MB.')
+                    : analyzing
+                      ? t('Checking configuration…')
+                      : preview?.format === 'unknown'
+                        ? t('Format not recognized')
+                        : profiles.length === 1
+                          ? t('1 valid profile is ready.')
+                          : t('{count} valid profiles are ready.', { count: profiles.length })}
                 </strong>
               )}
             </div>

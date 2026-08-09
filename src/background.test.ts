@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { browser } from 'wxt/browser';
 import background from './entrypoints/background';
@@ -12,6 +12,7 @@ async function stored(): Promise<unknown> {
 }
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   fakeBrowser.reset();
 });
 
@@ -30,6 +31,40 @@ describe('background worker', () => {
 
     await fakeBrowser.runtime.onInstalled.trigger({ reason: 'install' });
     await expect.poll(stored).toEqual(createDefaultState());
+  });
+
+  it('opens the local release notes once after a version upgrade', async () => {
+    vi.spyOn(fakeBrowser.runtime, 'getManifest').mockReturnValue({
+      version: '0.1.0',
+    } as ReturnType<typeof fakeBrowser.runtime.getManifest>);
+    const create = vi.spyOn(browser.tabs, 'create');
+    background.main();
+
+    await fakeBrowser.runtime.onInstalled.trigger({
+      reason: 'update',
+      previousVersion: '0.0.9',
+    });
+
+    await expect.poll(() => create.mock.calls.length).toBe(1);
+    const createdTab = create.mock.calls[0]?.[0];
+    expect(createdTab?.url?.endsWith('/options.html#whats-new')).toBe(true);
+  });
+
+  it.each([
+    ['install', undefined],
+    ['update', '0.1.0'],
+    ['update', '0.2.0'],
+  ] as const)('does not show release notes for %s from %s', async (reason, previousVersion) => {
+    vi.spyOn(fakeBrowser.runtime, 'getManifest').mockReturnValue({
+      version: '0.1.0',
+    } as ReturnType<typeof fakeBrowser.runtime.getManifest>);
+    const create = vi.spyOn(browser.tabs, 'create');
+    background.main();
+
+    const details = previousVersion === undefined ? { reason } : { reason, previousVersion };
+    await fakeBrowser.runtime.onInstalled.trigger(details);
+
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('leaves an existing state untouched', async () => {

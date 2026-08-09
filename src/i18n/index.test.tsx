@@ -16,6 +16,7 @@ describe('resolveLanguage', () => {
 
   it('uses Turkish only for a Turkish browser locale', () => {
     expect(resolveLanguage('system', 'tr-TR')).toBe('tr');
+    expect(resolveLanguage('system', 'TR-TR')).toBe('tr');
     expect(resolveLanguage('system', 'en-US')).toBe('en');
     expect(resolveLanguage('system', 'de-DE')).toBe('en');
   });

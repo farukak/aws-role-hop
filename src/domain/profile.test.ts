@@ -230,9 +230,11 @@ describe('normalizeProfileDraft', () => {
 
   it('removes blank and case-insensitive duplicate tags while preserving order', () => {
     const draft = normalizeProfileDraft(
-      profileDraftSchema.parse(roleDraft({ tags: [' platform ', 'PLATFORM', 'payments'] })),
+      profileDraftSchema.parse(
+        roleDraft({ tags: [' platform ', 'PLATFORM', 'I', 'i', 'payments'] }),
+      ),
     );
-    expect(draft.tags).toEqual(['platform', 'payments']);
+    expect(draft.tags).toEqual(['platform', 'I', 'payments']);
   });
 
   it('lowercases the region and normalizes the portal URL', () => {
@@ -406,6 +408,15 @@ describe('appStateSchema', () => {
       appStateSchema.safeParse({
         ...state,
         profileLists: [original, { id: crypto.randomUUID(), name: ' default ' }],
+      }).success,
+    ).toBe(false);
+    expect(
+      appStateSchema.safeParse({
+        ...state,
+        profileLists: [
+          { ...original, name: 'I' },
+          { id: crypto.randomUUID(), name: 'i' },
+        ],
       }).success,
     ).toBe(false);
   });

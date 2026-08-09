@@ -8,7 +8,7 @@ export default defineConfig({
     developmentIndicator: 'overlay',
   },
   zip: {
-    excludeSources: ['coverage/**'],
+    excludeSources: ['coverage/**', '6.2.1_0/**'],
   },
   manifest: ({ browser }) => ({
     name: '__MSG_extensionName__',

@@ -51,7 +51,7 @@ function searchableFields(profile: Profile): string[] {
 }
 
 function normalize(value: string): string {
-  return value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase().trim();
+  return value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().trim();
 }
 
 function scoreMatch(field: string, token: string): number {

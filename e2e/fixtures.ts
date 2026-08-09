@@ -62,6 +62,26 @@ export const test = base.extend<Extension>({
       const hostname = url.hostname.toLowerCase();
       if (!isAwsHost(hostname)) return route.abort('blockedbyclient');
 
+      const isStandardSwitch =
+        request.method() === 'POST' &&
+        hostname === 'signin.aws.amazon.com' &&
+        url.pathname === '/switchrole';
+      if (isStandardSwitch) {
+        const fields = new URLSearchParams(request.postData() ?? '');
+        const encodedDestination = fields.get('redirect_uri');
+        if (!encodedDestination) return route.abort('failed');
+
+        const destination = new URL(decodeURIComponent(encodedDestination));
+        if (destination.protocol !== 'https:' || !isAwsHost(destination.hostname)) {
+          return route.abort('blockedbyclient');
+        }
+        return route.fulfill({
+          status: 302,
+          headers: { location: destination.toString() },
+          body: '',
+        });
+      }
+
       const isConsole = hostname.includes('.console.');
       return route.fulfill({
         status: 200,
