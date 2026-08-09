@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { latestRelease } from '../../domain/release-notes';
@@ -11,13 +11,16 @@ describe('WhatsNewView', () => {
 
     const heading = screen.getByRole('heading', { level: 1, name: "What's new" });
     expect(document.activeElement).toBe(heading);
-    expect(
-      screen.getByRole('heading', {
-        level: 2,
-        name: `Version ${latestRelease().version}`,
-      }),
-    ).toBeDefined();
-    expect(screen.getAllByRole('listitem')).toHaveLength(latestRelease().highlights.length);
+    const releaseHeading = screen.getByRole('heading', {
+      level: 2,
+      name: `Version ${latestRelease().version}`,
+    });
+    const releaseCard = releaseHeading.closest('section');
+
+    expect(releaseCard).not.toBeNull();
+    expect(within(releaseCard!).getAllByRole('listitem')).toHaveLength(
+      latestRelease().highlights.length,
+    );
   });
 
   it('returns to preferences through the in-app action', async () => {

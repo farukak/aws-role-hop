@@ -8,6 +8,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    version: '0.1.1',
+    date: '2026-08-09',
+    highlights: [
+      'Open release notes directly from the options sidebar.',
+      "Open Faruk AK's GitHub profile from below the Local by design card.",
+    ],
+  },
+  {
     version: '0.1.0',
     date: '2026-08-09',
     highlights: [

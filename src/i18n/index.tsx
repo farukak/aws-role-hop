@@ -301,6 +301,10 @@ const TURKISH_MESSAGES = {
   'Back to preferences': 'Tercihlere dön',
   'View full changelog on GitHub': 'Tüm değişiklik günlüğünü GitHub’da görüntüle',
   'Built by Faruk AK on GitHub': 'GitHub’da Faruk AK tarafından geliştirildi',
+  'Open release notes directly from the options sidebar.':
+    'Sürüm notlarını doğrudan seçenekler kenar çubuğundan aç.',
+  "Open Faruk AK's GitHub profile from below the Local by design card.":
+    'Faruk AK’nin GitHub profilini Local by design kartının altından aç.',
   'Organize AWS roles and Identity Center profiles in named local lists.':
     'AWS rollerini ve Identity Center profillerini adlandırılmış yerel listelerde düzenle.',
   "Switch IAM roles through AWS's native flow without an intermediate page.":
