@@ -28,6 +28,42 @@ test('adds, edits, and deletes an IAM profile', async ({ options }) => {
   await expect(options.getByRole('heading', { name: 'Operations audit' })).toHaveCount(0);
 });
 
+test('persists a manually selected profile color', async ({ options }) => {
+  await seed(options);
+
+  await options.getByRole('button', { name: 'Add profile' }).click();
+  let dialog = options.getByRole('dialog');
+  await dialog.getByLabel('Profile name').fill('Lilac operations');
+  await dialog.getByLabel('Account ID or alias').fill('444444444444');
+  await dialog.getByLabel('Role name or path').fill('ReadOnly');
+  await dialog.getByRole('button', { name: 'Choose profile color' }).click();
+
+  const picker = dialog.getByRole('group', { name: 'Profile color' });
+  await expect(picker.getByRole('radio')).toHaveCount(9);
+  await picker.getByText('Soft lilac', { exact: true }).click();
+  await expect(dialog.getByText('Soft lilac · selected manually')).toBeVisible();
+  await dialog.screenshot({ path: '/tmp/aws-role-hop-profile-color-picker.png' });
+  await dialog.getByRole('button', { name: 'Add profile' }).click();
+
+  const storedColor = await options.evaluate(async () => {
+    const extensionGlobal = globalThis as typeof globalThis & {
+      chrome: {
+        storage: { local: { get: (key: string) => Promise<Record<string, unknown>> } };
+      };
+    };
+    const stored = await extensionGlobal.chrome.storage.local.get('rolehop.appState');
+    const state = stored['rolehop.appState'] as { profiles: { colorId: string }[] };
+    return state.profiles[0]?.colorId;
+  });
+  expect(storedColor).toBe('lilac');
+
+  const card = options.getByRole('article').filter({ hasText: 'Lilac operations' });
+  await card.getByRole('button', { name: 'Edit' }).click();
+  dialog = options.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Choose profile color' }).click();
+  await expect(dialog.getByRole('radio', { name: 'Soft lilac' })).toBeChecked();
+});
+
 test('imports a complex AWS config with source profile defaults', async ({ options }) => {
   await seed(options);
   await options.getByRole('button', { name: 'Import', exact: true }).click();

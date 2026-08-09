@@ -126,6 +126,46 @@ describe('ProfileDialog — accessibility wiring', () => {
   });
 });
 
+describe('ProfileDialog — profile color', () => {
+  it('opens from the palette button and exposes automatic plus eight pastel colors', async () => {
+    const { user } = setup();
+
+    expect(screen.queryByRole('radio', { name: 'Soft lilac' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Choose profile color' }));
+
+    expect(screen.getAllByRole('radio')).toHaveLength(9);
+    expect(screen.getByRole('radio', { name: 'Automatic' })).toHaveProperty('checked', true);
+  });
+
+  it('submits and previews a manually selected color', async () => {
+    const { onSave, user } = setup();
+
+    await user.type(field('Profile name'), 'Custom color');
+    await user.type(field('Account ID or alias'), '123456789012');
+    await user.type(field('Role name or path'), 'ReadOnly');
+    await user.click(screen.getByRole('button', { name: 'Choose profile color' }));
+    await user.click(screen.getByRole('radio', { name: 'Soft lilac' }));
+
+    expect(screen.getByText(/Soft lilac · selected manually/)).toBeDefined();
+    await user.click(screen.getByRole('button', { name: 'Add profile' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0]?.[0]).toMatchObject({ colorId: 'lilac' });
+  });
+
+  it('preselects the stored color while editing and can return to automatic assignment', async () => {
+    const { onSave, user } = setup(existingProfile());
+
+    await user.click(screen.getByRole('button', { name: 'Choose profile color' }));
+    expect(screen.getByRole('radio', { name: 'Soft rose' })).toHaveProperty('checked', true);
+    await user.click(screen.getByRole('radio', { name: 'Automatic' }));
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onSave.mock.calls[0]?.[0]).not.toHaveProperty('colorId');
+  });
+});
+
 describe('ProfileDialog — connection type', () => {
   it('offers IAM role and Identity Center as a pressed-state pair', () => {
     setup();

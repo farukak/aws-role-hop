@@ -143,6 +143,7 @@ const draftBaseShape = {
   environment: environmentSchema,
   favorite: z.boolean(),
   tags: z.array(tagSchema).check(z.maxLength(8, 'Use no more than 8 tags.')),
+  colorId: z.optional(z.enum(PROFILE_COLOR_IDS)),
 };
 
 export const roleProfileDraftSchema = z.strictObject({
@@ -322,12 +323,16 @@ export function createProfile(
   });
 }
 
-export function updateProfileRecord(existing: Profile, draft: ProfileDraft): Profile {
+export function updateProfileRecord(
+  existing: Profile,
+  draft: ProfileDraft,
+  colorId: ProfileColorId = draft.colorId ?? existing.colorId,
+): Profile {
   return profileSchema.parse({
     ...normalizeProfileDraft(draft),
     id: existing.id,
     listId: existing.listId,
-    colorId: existing.colorId,
+    colorId,
     createdAt: existing.createdAt,
     updatedAt: new Date().toISOString(),
     ...(existing.lastUsedAt ? { lastUsedAt: existing.lastUsedAt } : {}),

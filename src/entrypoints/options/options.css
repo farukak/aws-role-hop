@@ -576,7 +576,103 @@ body {
   font-size: 10px;
 }
 
-.profile-form__preview > svg {
+.profile-color-trigger {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-tertiary);
+}
+
+.profile-color-trigger:hover:not(:disabled),
+.profile-color-trigger[aria-expanded='true'] {
+  border-color: var(--profile-border);
+  background: var(--profile-surface);
+  color: var(--profile-text);
+}
+
+.profile-color-trigger:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.profile-color-picker {
+  margin: -8px 0 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 13px;
+  background: var(--color-surface-muted);
+}
+
+.profile-color-picker legend {
+  padding: 0 5px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.profile-color-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.profile-color-option {
+  display: flex;
+  min-width: 0;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.profile-color-option:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.profile-color-option[data-selected='true'] {
+  border-color: var(--profile-border, var(--color-accent));
+  background: var(--profile-surface, var(--color-accent-soft));
+  color: var(--profile-text, var(--color-accent-text));
+}
+
+.profile-color-option:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.profile-color-option > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-color-swatch {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 1px solid var(--profile-border);
+  border-radius: 7px;
+  background: var(--profile-accent);
+}
+
+.profile-color-swatch--automatic {
+  display: grid;
+  place-items: center;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-muted);
   color: var(--color-text-tertiary);
 }
 
@@ -1553,6 +1649,10 @@ body {
   .choice-grid--three,
   .privacy-facts {
     grid-template-columns: 1fr;
+  }
+
+  .profile-color-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .profile-form__wide {

@@ -9,7 +9,7 @@ AWS Role Hop processes user-provided AWS profile metadata locally to provide its
 AWS Role Hop stores the following in the browser's local extension storage:
 
 - profile names and profile-list names;
-- the active list, default list, and automatic profile color assignments;
+- the active list, default list, and automatic or manually selected profile color assignments;
 - AWS account IDs or aliases;
 - IAM role names or Identity Center permission-set names;
 - AWS access portal URLs and optional landing regions;

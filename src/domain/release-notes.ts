@@ -8,6 +8,14 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    version: '0.1.2',
+    date: '2026-08-09',
+    highlights: [
+      'Choose and persist one of eight pastel colors when adding or editing a profile.',
+      'Return a profile to automatic color assignment from the accessible color picker.',
+    ],
+  },
+  {
     version: '0.1.1',
     date: '2026-08-09',
     highlights: [

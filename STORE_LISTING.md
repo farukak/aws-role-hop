@@ -39,7 +39,7 @@ Key features:
 
 - Switch IAM roles directly from an authenticated AWS Console tab.
 - Open IAM Identity Center account and permission-set shortcuts.
-- Organize profiles into named lists with favorites, tags, environments, and landing regions.
+- Organize profiles into named lists with favorites, tags, environments, landing regions, and automatic or manually selected pastel colors.
 - Import AWS config and Organizations JSON with live validation and syntax highlighting.
 - Ignore access keys, secret keys, session tokens, credential processes, and Organizations email addresses during import.
 - Export and restore local profile backups.
@@ -83,7 +83,7 @@ Başlıca özellikler:
 
 - Kimliği doğrulanmış AWS Console sekmesinden IAM rollerine doğrudan geçiş.
 - IAM Identity Center hesap ve izin seti kısayollarını açma.
-- Profilleri adlandırılmış listeler, favoriler, etiketler, ortamlar ve açılış bölgeleriyle düzenleme.
+- Profilleri adlandırılmış listeler, favoriler, etiketler, ortamlar, açılış bölgeleri ve otomatik veya elle seçilen pastel renklerle düzenleme.
 - AWS config ve Organizations JSON verilerini canlı doğrulama ve sözdizimi renklendirmeyle içe aktarma.
 - İçe aktarma sırasında erişim anahtarlarını, gizli anahtarları, oturum token'larını, credential process alanlarını ve Organizations e-posta adreslerini yok sayma.
 - Yerel profil yedeklerini dışa ve içe aktarma.

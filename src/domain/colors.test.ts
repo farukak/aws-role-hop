@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getColorById, getProfileColor } from './colors';
+import { getColorById, getProfileColor, PROFILE_COLORS } from './colors';
 import { ENVIRONMENT_OPTIONS, type Environment } from './profile';
 
 const ENVIRONMENTS = ENVIRONMENT_OPTIONS.map((option) => option.value);
@@ -70,6 +70,19 @@ describe('getProfileColor', () => {
 });
 
 describe('getColorById', () => {
+  it('exposes every supported manual palette color exactly once', () => {
+    expect(PROFILE_COLORS.map(({ id }) => id)).toEqual([
+      'rose',
+      'peach',
+      'amber',
+      'mint',
+      'teal',
+      'sky',
+      'indigo',
+      'lilac',
+    ]);
+  });
+
   it('resolves a known color', () => {
     expect(getColorById('rose')?.id).toBe('rose');
   });

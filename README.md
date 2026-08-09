@@ -16,7 +16,7 @@ AWS Role Hop is a fast, private profile launcher for the AWS Management Console.
 - IAM role profiles for the standard AWS, AWS GovCloud (US), and AWS China partitions
 - AWS IAM Identity Center shortcuts with optional landing regions
 - Unlimited named profile lists with explicit active and default-list behavior
-- Automatic low-saturation pastel colors, with distinct production and staging treatments
+- Automatic or manually selected low-saturation pastel colors, with distinct production and staging treatments
 - Favorites, recent profiles, tags, account masking, and keyboard-first search
 - Confirmation before opening production profiles
 - Strict AWS config and Organizations JSON import with live validation and syntax highlighting

@@ -224,7 +224,7 @@ export async function addProfile(draft: ProfileDraft, listId?: string): Promise<
     }
     ensureUniqueProfile(state.profiles, validatedDraft, targetListId);
     const listProfiles = state.profiles.filter((profile) => profile.listId === targetListId);
-    const colorId = chooseProfileColorId(validatedDraft, listProfiles);
+    const colorId = validatedDraft.colorId ?? chooseProfileColorId(validatedDraft, listProfiles);
     return {
       ...state,
       profiles: [...state.profiles, createProfile(validatedDraft, targetListId, colorId)],
@@ -238,10 +238,14 @@ export async function editProfile(id: string, draft: ProfileDraft): Promise<AppS
     const existing = state.profiles.find((profile) => profile.id === id);
     if (!existing) throw new AppStateError('Profile no longer exists.');
     ensureUniqueProfile(state.profiles, validatedDraft, existing.listId, id);
+    const listProfiles = state.profiles.filter(
+      (profile) => profile.listId === existing.listId && profile.id !== id,
+    );
+    const colorId = validatedDraft.colorId ?? chooseProfileColorId(validatedDraft, listProfiles);
     return {
       ...state,
       profiles: state.profiles.map((profile) =>
-        profile.id === id ? updateProfileRecord(existing, validatedDraft) : profile,
+        profile.id === id ? updateProfileRecord(existing, validatedDraft, colorId) : profile,
       ),
     };
   });
@@ -397,7 +401,7 @@ function addImportedProfiles(
     if (profiles.length >= PROFILE_LIMIT) {
       throw new AppStateError(`Import would exceed the ${PROFILE_LIMIT}-profile limit.`);
     }
-    const colorId = chooseProfileColorId(draft, listProfiles);
+    const colorId = draft.colorId ?? chooseProfileColorId(draft, listProfiles);
     const profile = createProfile(draft, targetListId, colorId);
     profiles.push(profile);
     listProfiles.push(profile);

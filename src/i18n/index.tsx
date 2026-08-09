@@ -190,6 +190,18 @@ const TURKISH_MESSAGES = {
   Tags: 'Etiketler',
   'Separate up to eight tags with commas.': 'En fazla sekiz etiketi virgülle ayır.',
   'assigned automatically': 'otomatik atandı',
+  'selected manually': 'elle seçildi',
+  'Choose profile color': 'Profil rengi seç',
+  'Profile color': 'Profil rengi',
+  Automatic: 'Otomatik',
+  'Soft rose': 'Yumuşak gül',
+  'Soft peach': 'Yumuşak şeftali',
+  'Soft amber': 'Yumuşak kehribar',
+  'Soft mint': 'Yumuşak nane',
+  'Soft teal': 'Yumuşak turkuaz',
+  'Soft sky': 'Yumuşak gök mavisi',
+  'Soft indigo': 'Yumuşak çivit mavisi',
+  'Soft lilac': 'Yumuşak leylak',
   'Favorite profile': 'Favori profil',
   'Keep this profile near the top of search results.':
     'Bu profili arama sonuçlarının üst sıralarında tut.',
@@ -301,6 +313,10 @@ const TURKISH_MESSAGES = {
   'Back to preferences': 'Tercihlere dön',
   'View full changelog on GitHub': 'Tüm değişiklik günlüğünü GitHub’da görüntüle',
   'Built by Faruk AK on GitHub': 'GitHub’da Faruk AK tarafından geliştirildi',
+  'Choose and persist one of eight pastel colors when adding or editing a profile.':
+    'Profil eklerken veya düzenlerken sekiz pastel renkten birini seç ve kalıcı olarak sakla.',
+  'Return a profile to automatic color assignment from the accessible color picker.':
+    'Erişilebilir renk seçiciden bir profili otomatik renk atamasına döndür.',
   'Open release notes directly from the options sidebar.':
     'Sürüm notlarını doğrudan seçenekler kenar çubuğundan aç.',
   "Open Faruk AK's GitHub profile from below the Local by design card.":

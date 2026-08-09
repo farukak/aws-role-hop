@@ -154,6 +154,13 @@ describe('profileDraftSchema — IAM role profiles', () => {
     expect(firstIssuePath(roleDraft({ region: 'eu-west' }))).toContain('region');
   });
 
+  it('accepts a supported optional profile color and rejects unknown colors', () => {
+    const selected = profileDraftSchema.safeParse(roleDraft({ colorId: 'lilac' }));
+    expect(selected.success).toBe(true);
+    if (selected.success) expect(selected.data.colorId).toBe('lilac');
+    expect(firstIssuePath(roleDraft({ colorId: 'chartreuse' }))).toContain('colorId');
+  });
+
   it('rejects an unknown partition', () => {
     expect(firstIssuePath(roleDraft({ partition: 'aws-iso' }))).toContain('partition');
   });
