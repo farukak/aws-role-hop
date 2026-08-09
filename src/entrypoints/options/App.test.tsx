@@ -42,8 +42,25 @@ describe('options deep links', () => {
     await waitFor(() =>
       expect(screen.getByRole('heading', { level: 1, name: "What's new" })).toBeDefined(),
     );
-    expect(screen.getByRole('button', { name: 'Preferences' }).getAttribute('aria-current')).toBe(
-      null,
+    expect(screen.getByRole('button', { name: "What's new" }).getAttribute('aria-current')).toBe(
+      'page',
     );
+  });
+
+  it('shows the creator credit below the local-only privacy card', async () => {
+    render(<OptionsApp />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', { name: 'Built by Faruk AK on GitHub' })).toBeDefined(),
+    );
+    const footer = document.querySelector('.options-sidebar__footer');
+    const link = screen.getByRole('link', { name: 'Built by Faruk AK on GitHub' });
+
+    expect(footer?.firstElementChild?.classList.contains('options-sidebar__privacy')).toBe(true);
+    expect(footer?.lastElementChild).toBe(link);
+    expect(link.getAttribute('href')).toBe('https://github.com/farukak');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+    expect(link.getAttribute('rel')).toContain('noreferrer');
   });
 });

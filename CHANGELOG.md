@@ -6,6 +6,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-09
+
+### Added
+
+- A permanent **What's new** item in the options sidebar for direct access to bundled release notes.
+- A visible **Faruk AK** creator credit directly below the **Local by design** card, linked safely to the developer's GitHub profile.
+
+### Changed
+
+- The release-notes sidebar item now exposes the active-page state to assistive technology and remains available in both English and Turkish.
+
 ## [0.1.0] - 2026-08-09
 
 ### Added
@@ -59,5 +70,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - All four modal dialogs expose an accessible name and description, the popup has a top-level heading, and both the popup and the options list announce how many profiles match the current search.
 - Removed a keyboard shortcut hint in the popup search field that no handler implemented and that showed a macOS-only key on every platform.
 
-[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/farukak/aws-role-hop/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/farukak/aws-role-hop/releases/tag/v0.1.0

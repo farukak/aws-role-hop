@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react';
-import { FileInput, Settings2, ShieldCheck, UsersRound, X } from 'lucide-react';
+import {
+  ExternalLink,
+  FileInput,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { Brand } from '../../components/Brand';
 import { StatusCard } from '../../components/StatusCard';
 import { useAppState, useTheme } from '../../hooks/useAppState';
@@ -24,6 +32,7 @@ const NAV_ITEMS = [
   { id: 'profiles', label: 'Profiles', icon: UsersRound },
   { id: 'import', label: 'Import', icon: FileInput },
   { id: 'preferences', label: 'Preferences', icon: Settings2 },
+  { id: 'whats-new', label: "What's new", icon: Sparkles },
 ] as const;
 
 export function resolveOptionsView(hash: string): OptionsView {
@@ -108,12 +117,27 @@ export function OptionsApp() {
             </button>
           ))}
         </nav>
-        <div className="options-sidebar__privacy">
-          <ShieldCheck size={17} strokeWidth={1.8} aria-hidden="true" />
-          <div>
-            <strong>{t('Local by design')}</strong>
-            <span>{t('No telemetry or cloud service')}</span>
+        <div className="options-sidebar__footer">
+          <div className="options-sidebar__privacy">
+            <ShieldCheck size={17} strokeWidth={1.8} aria-hidden="true" />
+            <div>
+              <strong>{t('Local by design')}</strong>
+              <span>{t('No telemetry or cloud service')}</span>
+            </div>
           </div>
+          <a
+            className="options-sidebar__creator"
+            href="https://github.com/farukak"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('Built by Faruk AK on GitHub')}
+          >
+            <div className="options-sidebar__creator-copy">
+              <strong>Faruk AK</strong>
+              <span>GitHub</span>
+            </div>
+            <ExternalLink size={14} aria-hidden="true" />
+          </a>
         </div>
       </aside>
 
