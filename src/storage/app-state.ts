@@ -121,7 +121,7 @@ function parseProfileList(id: string, name: string) {
   return result.data;
 }
 
-export async function ensureAppState(): Promise<AppState> {
+async function ensureAppStateUnlocked(): Promise<AppState> {
   const stored = await readStoredValue();
   if (stored === undefined) {
     const initialState = createDefaultState();
@@ -147,6 +147,10 @@ export async function ensureAppState(): Promise<AppState> {
   return result.data;
 }
 
+export function ensureAppState(): Promise<AppState> {
+  return runSerialized(ensureAppStateUnlocked);
+}
+
 export async function loadAppState(): Promise<AppState> {
   return ensureAppState();
 }
@@ -169,7 +173,7 @@ export async function restoreAppState(value: unknown): Promise<AppState> {
 
 async function updateAppState(mutator: (state: AppState) => AppState): Promise<AppState> {
   return runSerialized(async () => {
-    const current = await loadAppState();
+    const current = await ensureAppStateUnlocked();
     const next = parseAppState(
       mutator(current),
       'The requested change produced invalid local data and was not saved.',
@@ -295,10 +299,10 @@ function normalizeListName(name: string): string {
 }
 
 function ensureUniqueListName(state: AppState, name: string, ignoredId?: string): void {
-  const normalized = normalizeListName(name).toLocaleLowerCase();
+  const normalized = normalizeListName(name).toLowerCase();
   if (
     state.profileLists.some(
-      (list) => list.id !== ignoredId && list.name.toLocaleLowerCase() === normalized,
+      (list) => list.id !== ignoredId && list.name.toLowerCase() === normalized,
     )
   ) {
     throw new AppStateError('A profile list with this name already exists.');

@@ -2,16 +2,19 @@ import {
   buildAwsRedirectUrl,
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
+  isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
+  resolveAwsCsrfValue,
 } from '../domain/switch-role-page';
 import { isRoleSwitchRequest, type RoleSwitchResult } from '../domain/role-handoff';
 
 const BRIDGE_ID = 'rolehop-aws-console-bridge';
 const REQUEST_EVENT = 'rolehop:switch-request';
 const RESPONSE_EVENT = 'rolehop:switch-response';
+const MULTI_SESSION_TIMEOUT_MS = 14_000;
 
 type AwsGlobals = typeof globalThis & {
-  AWSC?: { Auth?: { getMbtc?: () => string } };
+  AWSC?: { Auth?: { getMbtc?: () => unknown } };
 };
 
 export default defineUnlistedScript(() => {
@@ -27,7 +30,9 @@ export default defineUnlistedScript(() => {
   bridge.addEventListener(REQUEST_EVENT, () => {
     void (async () => {
       try {
-        const request = JSON.parse(bridge.dataset.request ?? 'null') as unknown;
+        const serializedRequest = bridge.dataset.request;
+        delete bridge.dataset.request;
+        const request = JSON.parse(serializedRequest ?? 'null') as unknown;
         if (!isRoleSwitchRequest(request))
           throw new Error('AWS Role Hop switch request is invalid.');
 
@@ -38,40 +43,59 @@ export default defineUnlistedScript(() => {
           if (!metadata.sessionDifferentiator) {
             throw new Error('AWS multi-session metadata is incomplete.');
           }
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'X-CSRF-PROTECTION': '1',
-              'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-              account: request.account,
-              color: request.color,
-              displayName: request.displayName,
-              redirectUri: buildAwsRedirectUrl(
-                window.location.href,
-                request.region,
-                metadata.sessionDifferentiator,
-              ),
-              roleName: request.roleName,
-            }),
-          });
-          if (!response.ok) throw new Error(`AWS switch-role request failed (${response.status}).`);
-          const body = (await response.json()) as { destination?: unknown };
+
+          const controller = new AbortController();
+          const timeout = window.setTimeout(() => controller.abort(), MULTI_SESSION_TIMEOUT_MS);
+          let body: { destination?: unknown };
+          try {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              credentials: 'include',
+              headers: {
+                'X-CSRF-PROTECTION': '1',
+                'content-type': 'application/json',
+              },
+              body: JSON.stringify({
+                account: request.account,
+                color: request.color,
+                displayName: request.displayName,
+                redirectUri: buildAwsRedirectUrl(
+                  window.location.href,
+                  request.region,
+                  metadata.sessionDifferentiator,
+                ),
+                roleName: request.roleName,
+              }),
+              signal: controller.signal,
+            });
+            if (!response.ok) {
+              throw new Error(`AWS switch-role request failed (${response.status}).`);
+            }
+            body = (await response.json()) as { destination?: unknown };
+          } catch (error: unknown) {
+            if (controller.signal.aborted) {
+              throw new Error(
+                'AWS switch-role request timed out. Refresh the Console and try again.',
+                { cause: error },
+              );
+            }
+            throw error;
+          } finally {
+            window.clearTimeout(timeout);
+          }
+
           if (typeof body.destination !== 'string') {
             throw new Error('AWS did not return a switch destination.');
           }
-          const destination = new URL(body.destination);
-          if (destination.protocol !== 'https:') {
+          if (!isAllowedAwsConsoleDestination(body.destination, request.partition)) {
             throw new Error('AWS returned an unsafe switch destination.');
           }
           respond({ ok: true });
-          window.location.assign(destination.toString());
+          window.location.assign(body.destination);
           return;
         }
 
-        const csrf = (globalThis as AwsGlobals).AWSC?.Auth?.getMbtc?.() ?? '';
+        const csrf = await resolveAwsCsrfValue((globalThis as AwsGlobals).AWSC?.Auth?.getMbtc?.());
         const fields = buildAwsStandardSwitchFields(request, window.location.href, csrf);
         const form = document.createElement('form');
         form.method = 'POST';

@@ -99,6 +99,18 @@ describe('PopupApp — empty and error states', () => {
     expect(browser.runtime.openOptionsPage).toHaveBeenCalled();
   });
 
+  it('opens the import view directly from the empty state', async () => {
+    await seed();
+    const create = vi.spyOn(browser.tabs, 'create').mockResolvedValue({} as never);
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await user.click(await waitFor(() => screen.getByRole('button', { name: 'Import profiles' })));
+
+    const createdTab = create.mock.calls[0]?.[0];
+    expect(createdTab?.url).toContain('/options.html#import');
+  });
+
   it('reports unreadable storage instead of rendering an empty list', async () => {
     await browser.storage.local.set({ 'rolehop.appState': { version: 99 } });
     render(<PopupApp />);
@@ -299,6 +311,27 @@ describe('PopupApp — switching profiles', () => {
     await waitFor(async () => {
       expect((await loadAppState()).profiles[0]?.lastUsedAt).toBeDefined();
     });
+  });
+
+  it('does not record recency or close the popup when navigation fails', async () => {
+    await seed(draft({ environment: 'sandbox' }));
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      { id: 7, url: 'https://example.com', status: 'complete' },
+    ] as never);
+
+    render(<PopupApp />);
+    const user = userEvent.setup();
+    await user.click(await switchButton('Production admin'));
+
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain(
+        'Open AWS Role Hop from an authenticated AWS Console tab',
+      ),
+    );
+    expect((await loadAppState()).profiles[0]?.lastUsedAt).toBeUndefined();
+    expect((window.close as unknown as { mock: { calls: unknown[][] } }).mock.calls).toHaveLength(
+      0,
+    );
   });
 });
 

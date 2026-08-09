@@ -323,3 +323,39 @@ describe('ImportView — unrecognized input', () => {
     expect(screen.getByLabelText('AWS configuration')).toHaveProperty('value', '');
   });
 });
+
+describe('ImportView — destination and input limits', () => {
+  it('exposes the selected destination mode with aria-pressed', async () => {
+    const { user } = setup();
+    const existing = screen.getByRole('button', { name: 'Existing list' });
+    const createNew = screen.getByRole('button', { name: 'New list' });
+
+    expect(existing.getAttribute('aria-pressed')).toBe('true');
+    expect(createNew.getAttribute('aria-pressed')).toBe('false');
+    await user.click(createNew);
+    expect(existing.getAttribute('aria-pressed')).toBe('false');
+    expect(createNew.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('uses the 48-character profile-list schema limit', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'New list' }));
+    expect(screen.getByLabelText('New profile list name').getAttribute('maxlength')).toBe('48');
+  });
+
+  it('explains when pasted input exceeds one megabyte without notifying repeatedly', async () => {
+    const { notify } = setup();
+    fireEvent.change(screen.getByLabelText('AWS configuration'), {
+      target: { value: 'x'.repeat(1_000_001) },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('Pasted configuration must be smaller than 1 MB.')).toBeDefined(),
+    );
+    expect(screen.getByRole('button', { name: 'Import profiles' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+    expect(notify).not.toHaveBeenCalled();
+  });
+});

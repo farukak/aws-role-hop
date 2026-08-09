@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PROFILE_LIMIT } from '../domain/profile';
 import { parseAwsConfig } from './aws-config';
 
 describe('parseAwsConfig — credential safety', () => {
@@ -408,5 +409,33 @@ role_arn = arn:aws:iam::123456789012:role/R
 `);
     expect(result.profiles.map((draft) => draft.name)).toEqual(['good']);
     expect(result.issues).toHaveLength(1);
+  });
+});
+
+describe('parseAwsConfig — deterministic limits', () => {
+  it('matches source profiles using locale-independent casing', () => {
+    const result = parseAwsConfig(`
+[profile i]
+target_role_name = SharedRole
+
+[profile target]
+source_profile = I
+aws_account_id = 123456789012
+`);
+
+    expect(result.profiles).toHaveLength(1);
+    expect(result.profiles[0]?.roleName).toBe('SharedRole');
+  });
+
+  it(`caps previews at ${PROFILE_LIMIT} profiles and reports the limit once`, () => {
+    const input = Array.from(
+      { length: PROFILE_LIMIT + 1 },
+      (_unused, index) =>
+        `[profile p${index}]\nrole_arn = arn:aws:iam::123456789012:role/Role${index}`,
+    ).join('\n');
+
+    const result = parseAwsConfig(input);
+    expect(result.profiles).toHaveLength(PROFILE_LIMIT);
+    expect(result.issues.filter(({ section }) => section === 'Import limit')).toHaveLength(1);
   });
 });

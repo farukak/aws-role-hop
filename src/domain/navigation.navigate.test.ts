@@ -83,15 +83,22 @@ describe('navigateToProfile', () => {
     expect(send.mock.calls[0]?.[0]).toBe(84);
   });
 
-  it('requires an authenticated AWS Console tab for IAM switches', async () => {
-    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
-      { id: 42, url: 'https://example.com', status: 'complete' },
-    ] as never);
+  it.each(['current', 'new'] as const)(
+    'requires an authenticated AWS Console tab in %s-tab mode without side effects',
+    async (openBehavior) => {
+      vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+        { id: 42, url: 'https://example.com', status: 'complete' },
+      ] as never);
+      const duplicate = vi.spyOn(browser.tabs, 'duplicate');
+      const send = vi.spyOn(browser.tabs, 'sendMessage');
 
-    await expect(navigateToProfile(profile(), 'current')).rejects.toThrow(
-      'Open AWS Role Hop from an authenticated AWS Console tab',
-    );
-  });
+      await expect(navigateToProfile(profile(), openBehavior)).rejects.toThrow(
+        'Open AWS Role Hop from an authenticated AWS Console tab',
+      );
+      expect(duplicate).not.toHaveBeenCalled();
+      expect(send).not.toHaveBeenCalled();
+    },
+  );
 
   it('reports a bridge rejection', async () => {
     vi.spyOn(browser.tabs, 'query').mockResolvedValue([

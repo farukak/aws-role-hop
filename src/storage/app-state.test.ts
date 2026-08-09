@@ -94,6 +94,50 @@ describe('ensureAppState', () => {
     expect(await readRaw()).toEqual(migrated);
   });
 
+  it('serializes migration persistence with concurrent mutations', async () => {
+    const current = createDefaultState();
+    const legacy = {
+      ...current,
+      version: 2,
+      profiles: [],
+      settings: current.settings,
+    };
+    await browser.storage.local.set({ [STORAGE_KEY]: legacy });
+
+    const originalSet = browser.storage.local.set.bind(browser.storage.local);
+    let setCalls = 0;
+    let releaseFirstSet!: () => void;
+    let markThirdSetStarted!: () => void;
+    const thirdSetStarted = new Promise<void>((resolve) => {
+      markThirdSetStarted = resolve;
+    });
+    const firstSetStarted = new Promise<void>((resolve) => {
+      const delayedSet = async (values: Parameters<typeof browser.storage.local.set>[0]) => {
+        setCalls += 1;
+        if (setCalls === 3) markThirdSetStarted();
+        if (setCalls === 1) {
+          resolve();
+          await new Promise<void>((release) => {
+            releaseFirstSet = release;
+          });
+        }
+        await originalSet(values);
+      };
+      vi.spyOn(browser.storage.local, 'set').mockImplementation(
+        (values) => delayedSet(values) as never,
+      );
+    });
+
+    const migration = ensureAppState();
+    await firstSetStarted;
+    const mutation = addProfile(draft({ name: 'Concurrent', roleName: 'ConcurrentRole' }));
+    await Promise.race([thirdSetStarted, new Promise<void>((resolve) => setTimeout(resolve, 25))]);
+    releaseFirstSet();
+
+    await Promise.all([migration, mutation]);
+    expect((await loadAppState()).profiles.map(({ name }) => name)).toEqual(['Concurrent']);
+  });
+
   it('quarantines corrupted storage instead of silently resetting it', async () => {
     const corrupt = { version: 99, profiles: 'nope' };
     await browser.storage.local.set({ [STORAGE_KEY]: corrupt });
@@ -262,6 +306,11 @@ describe('profile lists', () => {
     await ensureAppState();
     const { defaultProfileListId } = await loadAppState();
     await expect(deleteProfileList(defaultProfileListId)).rejects.toThrow(/only profile list/i);
+  });
+
+  it('rejects list names that differ only by deterministic casing', async () => {
+    await createProfileList('I');
+    await expect(createProfileList('i')).rejects.toThrow(/already exists/i);
   });
 
   it('returns an AppStateError for an invalid list name', async () => {

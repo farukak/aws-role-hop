@@ -50,7 +50,7 @@ export async function navigateToProfile(
   }
 
   const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (activeTab?.id === undefined) {
+  if (activeTab?.id === undefined || !isAwsConsoleUrl(activeTab.url)) {
     throw new Error('Open AWS Role Hop from an authenticated AWS Console tab and try again.');
   }
 

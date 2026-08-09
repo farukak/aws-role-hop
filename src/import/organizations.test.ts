@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PROFILE_LIMIT } from '../domain/profile';
 import { organizationAccountsToDrafts, parseOrganizationsAccounts } from './organizations';
 
 const LIST_ACCOUNTS = JSON.stringify({
@@ -202,5 +203,19 @@ describe('organizationAccountsToDrafts', () => {
 
   it('produces nothing for an empty account list', () => {
     expect(organizationAccountsToDrafts([], 'Role', 'aws')).toEqual({ profiles: [], issues: [] });
+  });
+});
+
+describe('parseOrganizationsAccounts — preview limit', () => {
+  it(`caps previews at ${PROFILE_LIMIT} accounts and reports the limit once`, () => {
+    const Accounts = Array.from({ length: PROFILE_LIMIT + 1 }, (_unused, index) => ({
+      Id: String(100_000_000_000 + index),
+      Name: `Account ${index}`,
+      State: 'ACTIVE',
+    }));
+
+    const result = parseOrganizationsAccounts(JSON.stringify({ Accounts }));
+    expect(result.accounts).toHaveLength(PROFILE_LIMIT);
+    expect(result.issues.filter(({ section }) => section === 'Import limit')).toHaveLength(1);
   });
 });

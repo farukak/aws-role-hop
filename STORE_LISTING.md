@@ -160,11 +160,24 @@ IAM switching test with a reviewer-owned AWS test account:
 Required before submission:
 
 - 128×128 store icon: generated as `icons/128.png` in the package.
-- At least one current 1280×800 or 640×400 screenshot; prepare three clean 1280×800 images using only fictional account data.
-- Recommended 440×280 small promotional tile.
-- Optional 1400×560 marquee image.
+- Four current 1280×800 screenshots using only fictional account data are tracked in `docs/assets/`.
+- Small promotional tile: `docs/assets/store-promo-440x280.png` (440×280).
+- Marquee image: `docs/assets/store-marquee-1400x560.png` (1400×560).
+- GitHub social preview: `docs/assets/social-preview.png` (1280×640).
 
 Do not upload screenshots containing real AWS account IDs, browser bookmarks, costs, usernames, credentials, or production Console data. Store assets should use fictional twelve-digit account IDs and must match the submitted UI version.
+
+## GitHub repository presentation
+
+Keep the public repository settings aligned with the product:
+
+- About description: `Private, local-only AWS Console profile launcher for IAM roles and IAM Identity Center — no credentials stored.`
+- Website: `https://github.com/farukak/aws-role-hop#readme`
+- Topics: `aws`, `aws-console`, `iam`, `aws-identity-center`, `browser-extension`, `chrome-extension`, `firefox-addon`, `manifest-v3`, `privacy`, `react`, `typescript`, and `wxt`.
+- Social preview: upload `docs/assets/social-preview.png` from **Settings → General → Social preview**.
+- Keep Releases enabled, use `main` as the default branch, and disable unused repository features.
+
+These settings are stored by GitHub rather than in the repository, so verify them again before each public launch.
 
 ## External dashboard tasks
 

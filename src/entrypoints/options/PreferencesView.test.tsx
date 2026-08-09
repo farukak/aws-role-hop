@@ -2,6 +2,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { PreferencesView } from './PreferencesView';
 import { createDefaultState, type AppState } from '../../domain/profile';
@@ -13,8 +14,9 @@ function setup(overrides: Partial<AppState['settings']> = {}) {
     settings: { ...createDefaultState().settings, ...overrides },
   };
   const notify = vi.fn();
-  render(<PreferencesView state={state} notify={notify} />);
-  return { notify, user: userEvent.setup(), state };
+  const onShowWhatsNew = vi.fn();
+  render(<PreferencesView state={state} notify={notify} onShowWhatsNew={onShowWhatsNew} />);
+  return { notify, onShowWhatsNew, user: userEvent.setup(), state };
 }
 
 function themeOptions(): HTMLElement[] {
@@ -168,6 +170,36 @@ describe('PreferencesView — reset dialog', () => {
 
     expect(screen.queryByRole('dialog', { hidden: true })).toBeNull();
   });
+
+  it('disables dialog actions while reset is in progress', async () => {
+    const originalSet = browser.storage.local.set.bind(browser.storage.local);
+    let release!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const delayedSet = async (values: Parameters<typeof browser.storage.local.set>[0]) => {
+      await blocked;
+      await originalSet(values);
+    };
+    const write = vi
+      .spyOn(browser.storage.local, 'set')
+      .mockImplementation((values) => delayedSet(values) as never);
+    const { notify, user } = setup();
+
+    await user.click(screen.getByRole('button', { name: /Reset all data/ }));
+    const reset = screen.getByRole('button', { name: 'Reset data' });
+    await user.click(reset);
+
+    await waitFor(() => expect(reset).toHaveProperty('disabled', true));
+    expect(screen.getByRole('button', { name: 'Cancel' })).toHaveProperty('disabled', true);
+    await user.click(reset);
+    expect(write).toHaveBeenCalledTimes(1);
+
+    release();
+    await waitFor(() =>
+      expect(notify).toHaveBeenCalledWith('All local AWS Role Hop data was reset.', 'info'),
+    );
+  });
 });
 describe('PreferencesView — backup errors', () => {
   it('restores a valid JSON backup', async () => {
@@ -241,5 +273,25 @@ describe('PreferencesView — backup errors', () => {
         Reflect.deleteProperty(URL, 'createObjectURL');
       }
     }
+  });
+});
+
+describe('PreferencesView — about and credits', () => {
+  it("opens the local What's New view", async () => {
+    const { onShowWhatsNew, user } = setup();
+
+    await user.click(screen.getByRole('button', { name: "What's new" }));
+    expect(onShowWhatsNew).toHaveBeenCalledOnce();
+  });
+
+  it('credits Faruk AK through a safe external GitHub link', () => {
+    setup();
+
+    const link = screen.getByRole('link', { name: 'Built by Faruk AK on GitHub' });
+    expect(link.getAttribute('href')).toBe('https://github.com/farukak');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+    expect(link.getAttribute('rel')).toContain('noreferrer');
+    expect(document.querySelector('a[href*="linkedin"]')).toBeNull();
   });
 });

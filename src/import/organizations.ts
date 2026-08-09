@@ -1,5 +1,6 @@
 import {
   inferEnvironment,
+  PROFILE_LIMIT,
   profileDraftSchema,
   type Partition,
   type ProfileDraft,
@@ -60,6 +61,7 @@ export function parseOrganizationsAccounts(input: string): OrganizationsParseRes
   const accounts: OrganizationAccount[] = [];
   const seen = new Set<string>();
   let skippedInactive = 0;
+  let profileLimitReported = false;
 
   for (const [index, entry] of entries.entries()) {
     const position = `Account ${index + 1}`;
@@ -107,6 +109,17 @@ export function parseOrganizationsAccounts(input: string): OrganizationsParseRes
 
     if (seen.has(id)) continue;
     seen.add(id);
+
+    if (accounts.length >= PROFILE_LIMIT) {
+      if (!profileLimitReported) {
+        issues.push({
+          section: 'Import limit',
+          message: `Only the first ${PROFILE_LIMIT} active accounts are shown and can be imported.`,
+        });
+        profileLimitReported = true;
+      }
+      continue;
+    }
 
     const name = typeof entry.Name === 'string' && entry.Name.trim() ? entry.Name.trim() : id;
     accounts.push({ id, name });

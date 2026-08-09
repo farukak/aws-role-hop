@@ -8,8 +8,9 @@ import { useI18n } from '../../i18n';
 import { ImportView } from './ImportView';
 import { PreferencesView } from './PreferencesView';
 import { ProfilesView } from './ProfilesView';
+import { WhatsNewView } from './WhatsNewView';
 
-type OptionsView = 'profiles' | 'import' | 'preferences';
+export type OptionsView = 'profiles' | 'import' | 'preferences' | 'whats-new';
 export type NoticeTone = 'success' | 'error' | 'info';
 export type Notify = (message: string, tone?: NoticeTone) => void;
 
@@ -25,10 +26,19 @@ const NAV_ITEMS = [
   { id: 'preferences', label: 'Preferences', icon: Settings2 },
 ] as const;
 
+export function resolveOptionsView(hash: string): OptionsView {
+  const candidate = hash.replace(/^#/, '');
+  return candidate === 'import' || candidate === 'preferences' || candidate === 'whats-new'
+    ? candidate
+    : 'profiles';
+}
+
 export function OptionsApp() {
   const { t } = useI18n();
   const { state, loading, error } = useAppState();
-  const [activeView, setActiveView] = useState<OptionsView>('profiles');
+  const [activeView, setActiveView] = useState<OptionsView>(() =>
+    resolveOptionsView(window.location.hash),
+  );
   const [notice, setNotice] = useState<Notice | null>(null);
 
   useTheme(state?.settings.theme);
@@ -119,7 +129,14 @@ export function OptionsApp() {
             onManageList={showProfileList}
           />
         )}
-        {activeView === 'preferences' && <PreferencesView state={state} notify={notify} />}
+        {activeView === 'preferences' && (
+          <PreferencesView
+            state={state}
+            notify={notify}
+            onShowWhatsNew={() => setActiveView('whats-new')}
+          />
+        )}
+        {activeView === 'whats-new' && <WhatsNewView onBack={() => setActiveView('preferences')} />}
       </main>
 
       {notice && (

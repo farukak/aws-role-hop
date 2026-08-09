@@ -2,11 +2,13 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { browser } from 'wxt/browser';
 import {
   Download,
+  ExternalLink,
   HardDrive,
   LockKeyhole,
   Moon,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
   Sun,
   Upload,
 } from 'lucide-react';
@@ -18,12 +20,14 @@ import type { Notify } from './App';
 interface PreferencesViewProps {
   state: AppState;
   notify: Notify;
+  onShowWhatsNew: () => void;
 }
 
-export function PreferencesView({ state, notify }: PreferencesViewProps) {
+export function PreferencesView({ state, notify, onShowWhatsNew }: PreferencesViewProps) {
   const { t } = useI18n();
   const restoreInputRef = useRef<HTMLInputElement>(null);
   const [resetOpen, setResetOpen] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   async function saveSetting(patch: Partial<AppSettings>): Promise<void> {
     try {
@@ -87,12 +91,16 @@ export function PreferencesView({ state, notify }: PreferencesViewProps) {
   }
 
   async function resetAllData(): Promise<void> {
+    if (resetting) return;
+    setResetting(true);
     try {
       await resetAppState();
       setResetOpen(false);
       notify(t('All local AWS Role Hop data was reset.'), 'info');
     } catch (error: unknown) {
       notify(error instanceof Error ? error.message : t('Could not reset local data.'), 'error');
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -274,15 +282,38 @@ export function PreferencesView({ state, notify }: PreferencesViewProps) {
           </div>
         </section>
 
-        <footer className="about-footer">
-          <span>AWS Role Hop {version}</span>
-          <span>{t('Open source · Apache-2.0')}</span>
-          <span>{t('Not affiliated with Amazon Web Services')}</span>
+        <footer className="about-footer" aria-label="AWS Role Hop">
+          <div className="about-footer__meta">
+            <span>AWS Role Hop {version}</span>
+            <span>{t('Open source · Apache-2.0')}</span>
+            <span>{t('Not affiliated with Amazon Web Services')}</span>
+          </div>
+          <div className="about-footer__links">
+            <button type="button" className="about-footer__link" onClick={onShowWhatsNew}>
+              <Sparkles size={13} aria-hidden="true" />
+              {t("What's new")}
+            </button>
+            <a
+              className="about-footer__link"
+              href="https://github.com/farukak"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink size={13} aria-hidden="true" />
+              {t('Built by Faruk AK on GitHub')}
+            </a>
+          </div>
         </footer>
       </div>
 
       {resetOpen && (
-        <ResetDialog onCancel={() => setResetOpen(false)} onConfirm={() => void resetAllData()} />
+        <ResetDialog
+          busy={resetting}
+          onCancel={() => {
+            if (!resetting) setResetOpen(false);
+          }}
+          onConfirm={() => void resetAllData()}
+        />
       )}
     </section>
   );
@@ -382,11 +413,12 @@ function PreferenceCheckbox({ checked, onChange, title, description }: Preferenc
 }
 
 interface ResetDialogProps {
+  busy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-function ResetDialog({ onCancel, onConfirm }: ResetDialogProps) {
+function ResetDialog({ busy, onCancel, onConfirm }: ResetDialogProps) {
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -405,10 +437,10 @@ function ResetDialog({ onCancel, onConfirm }: ResetDialogProps) {
       aria-describedby="reset-data-description"
       onCancel={(event) => {
         event.preventDefault();
-        onCancel();
+        if (!busy) onCancel();
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onCancel();
+        if (event.target === event.currentTarget && !busy) onCancel();
       }}
     >
       <div className="form-dialog__body">
@@ -418,10 +450,17 @@ function ResetDialog({ onCancel, onConfirm }: ResetDialogProps) {
         </p>
       </div>
       <footer className="form-dialog__footer">
-        <button className="secondary-button" type="button" onClick={onCancel}>
+        <button className="secondary-button" type="button" onClick={onCancel} disabled={busy}>
           {t('Cancel')}
         </button>
-        <button className="danger-button" type="button" onClick={onConfirm} autoFocus>
+        <button
+          className="danger-button"
+          type="button"
+          onClick={onConfirm}
+          disabled={busy}
+          autoFocus
+        >
+          {busy && <span className="spinner" aria-hidden="true" />}
           {t('Reset data')}
         </button>
       </footer>

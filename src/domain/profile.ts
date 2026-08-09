@@ -2,6 +2,7 @@ import * as z from 'zod/mini';
 
 export const PROFILE_LIMIT = 500;
 export const PROFILE_LIST_LIMIT = 100;
+export const PROFILE_LIST_NAME_MAX_LENGTH = 48;
 export const AWS_ACCOUNT_ID_LENGTH = 12;
 export const ACCOUNT_ALIAS_MAX_LENGTH = 63;
 export const ROLE_NAME_MAX_LENGTH = 64;
@@ -192,7 +193,10 @@ const profileListNameSchema = z
   .check(
     z.trim(),
     z.minLength(1, 'Profile list name is required.'),
-    z.maxLength(48, 'Profile list name must be 48 characters or fewer.'),
+    z.maxLength(
+      PROFILE_LIST_NAME_MAX_LENGTH,
+      `Profile list name must be ${PROFILE_LIST_NAME_MAX_LENGTH} characters or fewer.`,
+    ),
     singleLineText,
   );
 
@@ -230,7 +234,7 @@ export const appStateSchema = z
     ),
     z.refine(
       (state) =>
-        new Set(state.profileLists.map(({ name }) => name.trim().toLocaleLowerCase())).size ===
+        new Set(state.profileLists.map(({ name }) => name.trim().toLowerCase())).size ===
         state.profileLists.length,
       'Profile list names must be unique.',
     ),
@@ -281,7 +285,7 @@ function normalizeTags(tags: string[]): string[] {
     .map((tag) => tag.trim())
     .filter((tag) => {
       if (!tag) return false;
-      const key = tag.toLocaleLowerCase();
+      const key = tag.toLowerCase();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;

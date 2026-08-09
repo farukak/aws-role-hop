@@ -67,27 +67,32 @@ export default defineContentScript({
   },
 });
 
-function dispatchSwitchRequest(
+export function dispatchSwitchRequest(
   bridge: HTMLElement,
   request: RoleSwitchRequest,
 ): Promise<RoleSwitchResult> {
   return new Promise((resolve) => {
     const timeout = window.setTimeout(() => {
       bridge.removeEventListener(RESPONSE_EVENT, onResponse);
+      delete bridge.dataset.request;
+      delete bridge.dataset.response;
       resolve({ ok: false, error: 'AWS Console did not respond to the AWS Role Hop request.' });
     }, RESPONSE_TIMEOUT_MS);
 
     const onResponse = (): void => {
       window.clearTimeout(timeout);
       bridge.removeEventListener(RESPONSE_EVENT, onResponse);
+      const serializedResponse = bridge.dataset.response;
+      delete bridge.dataset.response;
       try {
-        resolve(JSON.parse(bridge.dataset.response ?? 'null') as RoleSwitchResult);
+        resolve(JSON.parse(serializedResponse ?? 'null') as RoleSwitchResult);
       } catch {
         resolve({ ok: false, error: 'AWS Console returned an invalid AWS Role Hop response.' });
       }
     };
 
     bridge.addEventListener(RESPONSE_EVENT, onResponse);
+    delete bridge.dataset.response;
     bridge.dataset.request = JSON.stringify(request);
     bridge.dispatchEvent(new Event(REQUEST_EVENT));
   });
