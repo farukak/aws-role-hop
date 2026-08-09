@@ -1,7 +1,7 @@
 import type { Environment, ProfileColorId, ProfileDraft } from './profile';
 
 export interface SoftColor {
-  id: string;
+  id: ProfileColorId;
   label: string;
   light: {
     surface: string;
@@ -17,7 +17,7 @@ export interface SoftColor {
   };
 }
 
-const COLORS: readonly SoftColor[] = [
+export const PROFILE_COLORS: readonly SoftColor[] = [
   {
     id: 'rose',
     label: 'Soft rose',
@@ -88,7 +88,7 @@ function hash(value: string): number {
 export function getProfileColor(profile: {
   accountId: string;
   environment: Environment;
-  colorId?: ProfileColorId;
+  colorId?: ProfileColorId | undefined;
 }): SoftColor {
   if (profile.colorId) {
     const persistedColor = getColorById(profile.colorId);
@@ -97,15 +97,18 @@ export function getProfileColor(profile: {
 
   const semanticColor = ENVIRONMENT_COLOR[profile.environment];
   if (semanticColor) {
-    const match = COLORS.find((color) => color.id === semanticColor);
+    const match = PROFILE_COLORS.find((color) => color.id === semanticColor);
     if (match) return match;
   }
 
-  return COLORS[hash(profile.accountId.toLowerCase()) % COLORS.length] ?? COLORS[0]!;
+  return (
+    PROFILE_COLORS[hash(profile.accountId.toLowerCase()) % PROFILE_COLORS.length] ??
+    PROFILE_COLORS[0]!
+  );
 }
 
 export function getColorById(id: string): SoftColor | undefined {
-  return COLORS.find((color) => color.id === id);
+  return PROFILE_COLORS.find((color) => color.id === id);
 }
 
 /**
@@ -118,15 +121,16 @@ export function chooseProfileColorId(
   existing: readonly { colorId: ProfileColorId }[],
 ): ProfileColorId {
   const start =
-    hash(`${profile.accountId.toLowerCase()}|${profile.roleName.toLowerCase()}`) % COLORS.length;
+    hash(`${profile.accountId.toLowerCase()}|${profile.roleName.toLowerCase()}`) %
+    PROFILE_COLORS.length;
   const used = new Set(existing.map(({ colorId }) => colorId));
 
-  for (let offset = 0; offset < COLORS.length; offset += 1) {
-    const candidate = COLORS[(start + offset) % COLORS.length];
-    if (candidate && !used.has(candidate.id as ProfileColorId)) {
-      return candidate.id as ProfileColorId;
+  for (let offset = 0; offset < PROFILE_COLORS.length; offset += 1) {
+    const candidate = PROFILE_COLORS[(start + offset) % PROFILE_COLORS.length];
+    if (candidate && !used.has(candidate.id)) {
+      return candidate.id;
     }
   }
 
-  return COLORS[(start + existing.length) % COLORS.length]!.id as ProfileColorId;
+  return PROFILE_COLORS[(start + existing.length) % PROFILE_COLORS.length]!.id;
 }

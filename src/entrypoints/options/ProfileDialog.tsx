@@ -12,11 +12,12 @@ import {
   type Environment,
   type Partition,
   type Profile,
+  type ProfileColorId,
   type ProfileDraft,
 } from '../../domain/profile';
-import { getProfileColor } from '../../domain/colors';
-import { ProfileAvatar } from '../../components/ProfileVisual';
-import { useI18n } from '../../i18n';
+import { getProfileColor, PROFILE_COLORS } from '../../domain/colors';
+import { getProfileToneStyle, ProfileAvatar } from '../../components/ProfileVisual';
+import { useI18n, type Message } from '../../i18n';
 
 interface ProfileDialogProps {
   profile: Profile | null;
@@ -35,6 +36,7 @@ interface FormValues {
   environment: Environment;
   tags: string;
   favorite: boolean;
+  colorId: ProfileColorId | undefined;
 }
 
 type FormErrors = Partial<Record<keyof FormValues | 'form', string | undefined>>;
@@ -42,9 +44,11 @@ type FormErrors = Partial<Record<keyof FormValues | 'form', string | undefined>>
 export function ProfileDialog({ profile, onClose, onSave }: ProfileDialogProps) {
   const { t } = useI18n();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const colorPickerId = useId();
   const [values, setValues] = useState<FormValues>(() => valuesFromProfile(profile));
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -59,8 +63,9 @@ export function ProfileDialog({ profile, onClose, onSave }: ProfileDialogProps) 
       name: values.name || t('New profile'),
       accountId: values.accountId || 'rolehop-preview',
       environment: values.environment,
+      ...(values.colorId ? { colorId: values.colorId } : {}),
     }),
-    [t, values.accountId, values.environment, values.name],
+    [t, values.accountId, values.colorId, values.environment, values.name],
   );
   const previewColor = getProfileColor(preview);
 
@@ -154,11 +159,64 @@ export function ProfileDialog({ profile, onClose, onSave }: ProfileDialogProps) 
             <div>
               <strong>{values.name || t('New profile')}</strong>
               <span>
-                {previewColor.label} · {t('assigned automatically')}
+                {t(previewColor.label as Message)} ·{' '}
+                {values.colorId ? t('selected manually') : t('assigned automatically')}
               </span>
             </div>
-            <Palette size={18} strokeWidth={1.7} aria-hidden="true" />
+            <button
+              className="profile-color-trigger"
+              type="button"
+              aria-label={t('Choose profile color')}
+              aria-expanded={colorPickerOpen}
+              aria-controls={colorPickerId}
+              onClick={() => setColorPickerOpen((open) => !open)}
+              disabled={saving}
+            >
+              <Palette size={18} strokeWidth={1.7} aria-hidden="true" />
+            </button>
           </div>
+
+          {colorPickerOpen && (
+            <fieldset className="profile-color-picker" id={colorPickerId}>
+              <legend>{t('Profile color')}</legend>
+              <div className="profile-color-options">
+                <label
+                  className="profile-color-option"
+                  data-selected={!values.colorId || undefined}
+                >
+                  <input
+                    className="visually-hidden"
+                    type="radio"
+                    name={`profile-color-${colorPickerId}`}
+                    checked={!values.colorId}
+                    onChange={() => setField('colorId', undefined)}
+                  />
+                  <span className="profile-color-swatch profile-color-swatch--automatic">
+                    <Palette size={14} aria-hidden="true" />
+                  </span>
+                  <span>{t('Automatic')}</span>
+                </label>
+                {PROFILE_COLORS.map((color) => (
+                  <label
+                    className="profile-color-option profile-tone"
+                    data-selected={values.colorId === color.id || undefined}
+                    key={color.id}
+                    style={getProfileToneStyle({ ...preview, colorId: color.id })}
+                  >
+                    <input
+                      className="visually-hidden"
+                      type="radio"
+                      name={`profile-color-${colorPickerId}`}
+                      checked={values.colorId === color.id}
+                      onChange={() => setField('colorId', color.id)}
+                    />
+                    <span className="profile-color-swatch" aria-hidden="true" />
+                    <span>{t(color.label as Message)}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           <div className="profile-form__grid">
             <Field label={t('Profile name')} error={errors.name}>
@@ -435,6 +493,7 @@ function valuesFromProfile(profile: Profile | null): FormValues {
       environment: 'other',
       tags: '',
       favorite: false,
+      colorId: undefined,
     };
   }
 
@@ -449,6 +508,7 @@ function valuesFromProfile(profile: Profile | null): FormValues {
     environment: profile.environment,
     tags: profile.tags.join(', '),
     favorite: profile.favorite,
+    colorId: profile.colorId,
   };
 }
 
@@ -464,6 +524,7 @@ function toDraft(values: FormValues): unknown {
       .split(',')
       .map((tag) => tag.trim())
       .filter(Boolean),
+    ...(values.colorId ? { colorId: values.colorId } : {}),
   };
 
   const region = values.region.trim() ? { region: values.region } : {};

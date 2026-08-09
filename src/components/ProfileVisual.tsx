@@ -1,9 +1,19 @@
 import type { CSSProperties } from 'react';
 import { getProfileColor } from '../domain/colors';
-import { ENVIRONMENT_OPTIONS, type Profile, type ProfileDraft } from '../domain/profile';
+import {
+  ENVIRONMENT_OPTIONS,
+  type Environment,
+  type Profile,
+  type ProfileColorId,
+} from '../domain/profile';
 import { useI18n } from '../i18n';
 
-type ProfileLike = Pick<Profile | ProfileDraft, 'name' | 'accountId' | 'environment'>;
+interface ProfileLike {
+  name: string;
+  accountId: string;
+  environment: Environment;
+  colorId?: ProfileColorId | undefined;
+}
 
 type ToneStyle = CSSProperties & {
   '--profile-surface-light': string;

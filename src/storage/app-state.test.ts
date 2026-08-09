@@ -160,6 +160,11 @@ describe('addProfile', () => {
     expect(state.profiles[0]?.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it('persists a manually selected palette color', async () => {
+    const state = await addProfile(draft({ colorId: 'lilac' }));
+    expect(state.profiles[0]?.colorId).toBe('lilac');
+  });
+
   it('serializes concurrent writes so neither profile is lost', async () => {
     await Promise.all([
       addProfile(draft({ name: 'First', roleName: 'FirstRole' })),
@@ -220,6 +225,12 @@ describe('editProfile', () => {
     expect(updated.id).toBe(created.id);
     expect(updated.createdAt).toBe(created.createdAt);
     expect(updated.name).toBe('Renamed');
+  });
+
+  it('updates a profile to a manually selected palette color', async () => {
+    const created = (await addProfile(draft())).profiles[0]!;
+    const state = await editProfile(created.id, draft({ colorId: 'teal' }));
+    expect(state.profiles[0]?.colorId).toBe('teal');
   });
 
   it('fails for an unknown id', async () => {
