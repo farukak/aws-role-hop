@@ -3,6 +3,11 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   srcDir: 'src',
   modules: ['@wxt-dev/module-react', '@wxt-dev/auto-icons'],
+  vite: () => ({
+    build: {
+      modulePreload: false,
+    },
+  }),
   autoIcons: {
     baseIconPath: 'assets/icon.svg',
     developmentIndicator: 'overlay',
