@@ -294,6 +294,17 @@ const TURKISH_MESSAGES = {
     'Mevcut profiller Profiller ekranından yönetilir; ham içe aktarma metni saklanmaz.',
   '{added} profiles imported.': '{added} profil içe aktarıldı.',
   '{count} duplicate profiles skipped.': '{count} yinelenen profil atlandı.',
+  'Duplicates found': 'Yinelenenler bulundu',
+  '1 profile already exists in this list and will be skipped.':
+    '1 profil bu listede zaten var ve atlanacak.',
+  '{count} profiles already exist in this list and will be skipped.':
+    '{count} profil bu listede zaten var ve atlanacak.',
+  '1 profile reuses a name already in this list: {names}':
+    'Bu listede zaten kullanılan bir adı yeniden kullanan 1 profil var: {names}',
+  '{count} profiles reuse a name already in this list: {names}':
+    '{count} profil bu listede zaten kullanılan bir adı yeniden kullanıyor: {names}',
+  'Add at least one valid profile before importing.':
+    'İçe aktarmadan önce en az bir geçerli profil ekle.',
   'Could not open settings.': 'Ayarlar açılamadı.',
   "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.":
     "AWS Role Hop'u kimliği doğrulanmış bir AWS Console sekmesinden açın. AWS Role Hop, AWS'nin yerel rol değiştirme isteğini doğrudan gönderir; oturumu ve erişimi yine AWS doğrular.",

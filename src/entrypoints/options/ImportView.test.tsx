@@ -359,3 +359,68 @@ describe('ImportView — destination and input limits', () => {
     expect(notify).not.toHaveBeenCalled();
   });
 });
+
+describe('ImportView — duplicate warnings', () => {
+  const LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const ISO = '2026-01-01T00:00:00.000Z';
+
+  function stateWith(name: string, accountId: string): AppState {
+    const base = createDefaultState();
+    return {
+      ...base,
+      profiles: [
+        {
+          type: 'role',
+          name,
+          accountId,
+          roleName: 'AdminRole',
+          partition: 'aws',
+          environment: 'production',
+          favorite: false,
+          tags: [],
+          id: crypto.randomUUID(),
+          listId: LIST_ID,
+          colorId: 'rose',
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ],
+    };
+  }
+
+  it('warns before importing when a name is already used by another account', async () => {
+    const { user } = setup(stateWith('production-admin', '999999999999'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() => expect(screen.getByText('Duplicates found')).toBeDefined());
+    expect(
+      screen.getByText('1 profile reuses a name already in this list: production-admin'),
+    ).toBeDefined();
+    // A reused name is a warning, not a blocker.
+    expect(screen.getByRole('button', { name: 'Import 1 profile' })).toHaveProperty(
+      'disabled',
+      false,
+    );
+  });
+
+  it('warns before importing that an existing target will be skipped', async () => {
+    const { user } = setup(stateWith('Existing admin', '111111111111'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('1 profile already exists in this list and will be skipped.'),
+      ).toBeDefined(),
+    );
+  });
+
+  it('stays silent about duplicates when the paste is clean', async () => {
+    const { user } = setup(stateWith('Existing admin', '999999999999'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Import details' })).toBeDefined(),
+    );
+    expect(screen.queryByText('Duplicates found')).toBeNull();
+  });
+});
