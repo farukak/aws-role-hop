@@ -100,7 +100,7 @@ const regionSchema = z.string().check(
   z.regex(/^[a-z0-9]+(?:-[a-z0-9]+)+-\d$/, 'Enter a region such as us-east-1.'),
 );
 
-function isAllowedPortalUrl(value: string): boolean {
+export function isAllowedPortalUrl(value: string): boolean {
   try {
     const url = new URL(value);
     const hostname = url.hostname.toLowerCase();

@@ -21,6 +21,23 @@ export default defineConfig({
     description: '__MSG_extensionDescription__',
     default_locale: 'en',
     permissions: ['storage', 'activeTab'],
+    ...(browser === 'firefox'
+      ? {
+          optional_permissions: [
+            'scripting',
+            'https://*.awsapps.com/*',
+            'https://*.awsapps.cn/*',
+            'https://*.app.aws/*',
+          ],
+        }
+      : {
+          optional_permissions: ['scripting'],
+          optional_host_permissions: [
+            'https://*.awsapps.com/*',
+            'https://*.awsapps.cn/*',
+            'https://*.app.aws/*',
+          ],
+        }),
     web_accessible_resources: [
       {
         resources: ['aws-console-bridge.js'],
