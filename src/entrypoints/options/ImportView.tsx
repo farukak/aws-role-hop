@@ -25,6 +25,7 @@ import {
   type ProfileDraft,
 } from '../../domain/profile';
 import { parseAwsConfig, type AwsConfigImportResult } from '../../import/aws-config';
+import { findImportCollisions } from '../../import/collisions';
 import { detectImportFormat, type IgnoredSection, type ImportIssue } from '../../import/format';
 import {
   organizationAccountsToDrafts,
@@ -67,6 +68,7 @@ aws organizations list-accounts`;
 const UNKNOWN_FORMAT_MESSAGE =
   'This does not look like an AWS CLI config or aws organizations list-accounts output. Expected INI sections such as [profile name], or JSON containing an "Accounts" array.';
 const IMPORT_MAX_BYTES = 1_000_000;
+const NAMES_SHOWN = 5;
 
 type Preview =
   | { format: 'aws-config'; result: AwsConfigImportResult }
@@ -112,8 +114,11 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
     return organizationAccountsToDrafts(preview.accounts, roleName.trim(), partition);
   }, [partition, preview, roleName]);
 
-  const profiles: ProfileDraft[] =
-    preview?.format === 'aws-config' ? preview.result.profiles : (converted?.profiles ?? []);
+  const profiles: ProfileDraft[] = useMemo(
+    () =>
+      preview?.format === 'aws-config' ? preview.result.profiles : (converted?.profiles ?? []),
+    [converted, preview],
+  );
 
   const issues: ImportIssue[] =
     preview?.format === 'aws-config'
@@ -123,6 +128,24 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
         : [];
 
   const ignored: IgnoredSection[] = preview?.format === 'aws-config' ? preview.result.ignored : [];
+
+  // A brand-new list starts empty, so only the pasted batch can collide there.
+  const destinationProfiles = useMemo(
+    () =>
+      destinationMode === 'new'
+        ? []
+        : state.profiles.filter((profile) => profile.listId === selectedTargetListId),
+    [destinationMode, selectedTargetListId, state.profiles],
+  );
+  const collisions = useMemo(
+    () => findImportCollisions(profiles, destinationProfiles),
+    [destinationProfiles, profiles],
+  );
+  const shownDuplicateNames = collisions.duplicateNames.slice(0, NAMES_SHOWN).join(', ');
+  const duplicateNameList =
+    collisions.duplicateNames.length > NAMES_SHOWN
+      ? `${shownDuplicateNames}…`
+      : shownDuplicateNames;
 
   const configSize = useMemo(() => new Blob([config]).size, [config]);
   const configTooLarge = configSize > IMPORT_MAX_BYTES;
@@ -182,7 +205,10 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
   }
 
   async function confirmImport(): Promise<void> {
-    if (!profiles.length) return;
+    if (!profiles.length) {
+      notify(t('Add at least one valid profile before importing.'), 'error');
+      return;
+    }
     if (destinationMode === 'new' && !newListName.trim()) {
       notify(t('Enter a name for the new profile list.'), 'error');
       return;
@@ -494,6 +520,36 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
               <div>
                 <strong>{t('Credential fields were removed')}</strong>
                 <span>{t('Only profile metadata shown below can be imported.')}</span>
+              </div>
+            </div>
+          )}
+
+          {(collisions.duplicateTargets > 0 || collisions.duplicateNames.length > 0) && (
+            <div className="review-notice review-notice--warning">
+              <AlertTriangle size={18} strokeWidth={1.8} aria-hidden="true" />
+              <div>
+                <strong>{t('Duplicates found')}</strong>
+                {collisions.duplicateTargets > 0 && (
+                  <span>
+                    {collisions.duplicateTargets === 1
+                      ? t('1 profile already exists in this list and will be skipped.')
+                      : t('{count} profiles already exist in this list and will be skipped.', {
+                          count: collisions.duplicateTargets,
+                        })}
+                  </span>
+                )}
+                {collisions.duplicateNames.length > 0 && (
+                  <span>
+                    {collisions.duplicateNames.length === 1
+                      ? t('1 profile reuses a name already in this list: {names}', {
+                          names: duplicateNameList,
+                        })
+                      : t('{count} profiles reuse a name already in this list: {names}', {
+                          count: collisions.duplicateNames.length,
+                          names: duplicateNameList,
+                        })}
+                  </span>
+                )}
               </div>
             </div>
           )}
