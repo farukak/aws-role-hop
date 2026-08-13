@@ -1,12 +1,26 @@
 import { browser } from 'wxt/browser';
 import type { AppSettings, Profile, SsoProfileDraft } from './profile';
+import { isAllowedAwsConsoleDestination } from './switch-role-page';
 import {
   buildRoleSwitchRequest,
   buildRoleSwitchUrl,
   isRoleSwitchResult,
   ROLE_SWITCH_READY_MESSAGE_TYPE,
+  type AwsSwitchFailureCode,
   type RoleSwitchRequest,
+  type RoleSwitchResult,
 } from './role-handoff';
+
+/** A switch AWS itself rejected, tagged so the interface can explain the cause. */
+export class RoleSwitchError extends Error {
+  readonly code?: AwsSwitchFailureCode;
+
+  constructor(message: string, code?: AwsSwitchFailureCode) {
+    super(message);
+    this.name = 'RoleSwitchError';
+    if (code) this.code = code;
+  }
+}
 
 const TAB_READY_TIMEOUT_MS = 15_000;
 const BRIDGE_READY_TIMEOUT_MS = 3_000;
@@ -54,26 +68,121 @@ export async function navigateToProfile(
     throw new Error('Open AWS Role Hop from an authenticated AWS Console tab and try again.');
   }
 
-  const targetTab = openBehavior === 'new' ? await duplicateConsoleTab(activeTab.id) : activeTab;
-  if (!targetTab || targetTab.id === undefined) {
+  const readiness = await waitForBridgeReadiness(activeTab.id);
+  const request = buildRoleSwitchRequest(profile);
+
+  if (readiness.prismModeEnabled) {
+    // AWS answers a multi-session switch with a destination rather than
+    // redirecting the caller, so the source session survives the switch.
+    let attempt = asSwitchResult(await sendSwitchRequest(activeTab.id, request));
+
+    // A session that already assumed a role cannot authorise another switch, so
+    // retry from any other Console tab still on the session the user signed in
+    // with. A refused switch changes nothing, which makes retrying safe.
+    if (attempt.code === 'chained') {
+      for (const tabId of await findOtherConsoleTabIds(activeTab.id)) {
+        const retry = await trySwitchInTab(tabId, request);
+        if (retry && retry.code !== 'chained') {
+          attempt = retry;
+          break;
+        }
+      }
+    }
+
+    if (!attempt.ok) {
+      throw new RoleSwitchError(
+        attempt.error ?? 'AWS Console rejected the AWS Role Hop request.',
+        attempt.code,
+      );
+    }
+    if (
+      !attempt.destination ||
+      !isAllowedAwsConsoleDestination(attempt.destination, profile.partition)
+    ) {
+      throw new RoleSwitchError('AWS did not return a usable switch destination.');
+    }
+    // Replacing a tab would destroy the session that authorises further
+    // switches, so a multi-session destination always gets its own tab.
+    await browser.tabs.create({ url: attempt.destination });
+    return;
+  }
+
+  // A standard switch is answered with a redirect in the tab that submitted it,
+  // so that tab has to be the one the user should end up looking at.
+  if (openBehavior !== 'new') {
+    requireSwitchResult(await sendSwitchRequest(activeTab.id, request));
+    return;
+  }
+
+  const targetTab = await duplicateConsoleTab(activeTab.id);
+  if (targetTab?.id === undefined) {
     throw new Error('The browser did not create an AWS Console tab.');
   }
 
   if (targetTab.status !== 'complete') await waitForTabReady(targetTab.id);
-  const result = await sendSwitchRequestWhenReady(targetTab.id, buildRoleSwitchRequest(profile));
+  requireSwitchResult(await sendSwitchRequestWhenReady(targetTab.id, request));
+}
+
+function asSwitchResult(result: unknown): RoleSwitchResult {
+  return isRoleSwitchResult(result)
+    ? result
+    : { ok: false, error: 'AWS Console rejected the AWS Role Hop request.' };
+}
+
+/**
+ * Console tabs are visible without the broad tabs permission because the
+ * extension already holds host access to the supported Console origins.
+ */
+async function findOtherConsoleTabIds(excludedTabId: number): Promise<number[]> {
+  const tabs = await browser.tabs.query({});
+  return tabs
+    .filter(
+      (tab): tab is typeof tab & { id: number } =>
+        tab.id !== undefined && tab.id !== excludedTabId && isAwsConsoleUrl(tab.url),
+    )
+    .map((tab) => tab.id);
+}
+
+/** Probes one Console tab and switches there, treating any failure as "not usable". */
+async function trySwitchInTab(
+  tabId: number,
+  request: RoleSwitchRequest,
+): Promise<RoleSwitchResult | undefined> {
+  try {
+    const readiness: unknown = await browser.tabs.sendMessage(
+      tabId,
+      ROLE_SWITCH_READY_MESSAGE_TYPE,
+    );
+    if (!isRoleSwitchResult(readiness) || !readiness.ok || !readiness.prismModeEnabled) {
+      return undefined;
+    }
+    const result: unknown = await browser.tabs.sendMessage(tabId, request);
+    return isRoleSwitchResult(result) ? result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function requireSwitchResult(result: unknown): RoleSwitchResult {
   if (!isRoleSwitchResult(result) || !result.ok) {
-    throw new Error(
-      isRoleSwitchResult(result) && result.error
-        ? result.error
-        : 'AWS Console rejected the AWS Role Hop request.',
+    const failure = isRoleSwitchResult(result) ? result : undefined;
+    throw new RoleSwitchError(
+      failure?.error ?? 'AWS Console rejected the AWS Role Hop request.',
+      failure?.code,
     );
   }
+  return result;
 }
 
 async function sendSwitchRequestWhenReady(
   tabId: number,
   request: RoleSwitchRequest,
 ): Promise<unknown> {
+  await waitForBridgeReadiness(tabId);
+  return sendSwitchRequest(tabId, request);
+}
+
+async function waitForBridgeReadiness(tabId: number): Promise<RoleSwitchResult> {
   const deadline = Date.now() + BRIDGE_READY_TIMEOUT_MS;
   while (true) {
     let readiness: unknown;
@@ -94,9 +203,11 @@ async function sendSwitchRequestWhenReady(
           : 'AWS Console rejected the AWS Role Hop bridge.',
       );
     }
-    break;
+    return readiness;
   }
+}
 
+async function sendSwitchRequest(tabId: number, request: RoleSwitchRequest): Promise<unknown> {
   try {
     return await browser.tabs.sendMessage(tabId, request);
   } catch {

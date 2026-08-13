@@ -4,6 +4,8 @@ import {
   buildAwsRedirectUrl,
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
+  classifyAwsSwitchStatus,
+  hasAssumedRole,
   isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
   resolveAwsCsrfValue,
@@ -151,5 +153,74 @@ describe('AWS switch POST data', () => {
         'session-1',
       ),
     ).toBe('https://eu-west-1.console.aws.amazon.com/console/home?foo=bar&region=eu-west-1');
+  });
+});
+
+describe('classifyAwsSwitchStatus', () => {
+  it.each([
+    [401, 'unauthorized'],
+    [403, 'unauthorized'],
+    [404, 'sessionMissing'],
+    [410, 'sessionMissing'],
+    [429, 'throttled'],
+    [500, 'unavailable'],
+    [503, 'unavailable'],
+    [400, 'rejected'],
+  ] as const)('maps %i to %s', (status, expected) => {
+    expect(classifyAwsSwitchStatus(status)).toBe(expected);
+  });
+});
+
+describe('readAwsConsoleSessionMetadata sign-in endpoint fallbacks', () => {
+  it('uses the separately published endpoint when the session data omits it', () => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"prismModeEnabled":true,"sessionDifferentiator":"934030966520-z3trodsy"}'>`;
+    document.body.innerHTML = `<div id="awsc-signin-endpoint" content="eu-west-1.signin.aws.amazon.com"></div>`;
+
+    expect(readAwsConsoleSessionMetadata(document)).toEqual({
+      prismModeEnabled: true,
+      sessionDifferentiator: '934030966520-z3trodsy',
+      signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
+    });
+  });
+
+  it.each([
+    ['us-gov-west-1', 'signin.amazonaws-us-gov.com'],
+    ['cn-north-1', 'signin.amazonaws.cn'],
+  ] as const)('derives the endpoint from the %s infrastructure region', (region, expected) => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"infrastructureRegion":"${region}"}'>`;
+    document.body.innerHTML = '';
+
+    expect(readAwsConsoleSessionMetadata(document).signInEndpoint).toBe(expected);
+  });
+
+  it('leaves the endpoint unresolved when AWS publishes nothing', () => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"prismModeEnabled":true}'>`;
+    document.body.innerHTML = '';
+
+    expect(readAwsConsoleSessionMetadata(document)).toEqual({ prismModeEnabled: true });
+  });
+});
+
+describe('classifyAwsSwitchStatus with an AWS error code', () => {
+  it('treats an UNAUTHORIZED body as unauthorized even on a 200', () => {
+    expect(classifyAwsSwitchStatus(200, 'UNAUTHORIZED')).toBe('unauthorized');
+  });
+
+  it.each([
+    ['0243-1459-6708', '', true],
+    ['', 'OrganizationAccountAccessRole/user', true],
+    ['', '', false],
+  ] as const)('detects an assumed role from account %s and user %s', (account, user, expected) => {
+    document.body.innerHTML = `<span id="awsc-role-display-name-account">${account}</span><span id="awsc-role-display-name-user">${user}</span>`;
+    expect(hasAssumedRole(document)).toBe(expected);
+  });
+
+  it('prefers the nav service when the Console renders no display-name nodes', () => {
+    document.body.innerHTML = '';
+    expect(
+      hasAssumedRole(document, { roleDisplayNameUser: 'OrganizationAccountAccessRole/faruk' }),
+    ).toBe(true);
+    expect(hasAssumedRole(document, { roleDisplayNameAccount: '   ' })).toBe(false);
+    expect(hasAssumedRole(document, null)).toBe(false);
   });
 });

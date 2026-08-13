@@ -14,9 +14,34 @@ export interface RoleSwitchRequest {
   region?: string;
 }
 
+/**
+ * AWS answers a rejected switch with an HTTP status only. These codes let the
+ * page bridge report *why* a switch failed so the popup can show translated,
+ * actionable copy instead of a bare status number.
+ */
+export const AWS_SWITCH_FAILURE_CODES = [
+  'unauthorized',
+  'chained',
+  'sessionMissing',
+  'throttled',
+  'unavailable',
+  'rejected',
+] as const;
+
+export type AwsSwitchFailureCode = (typeof AWS_SWITCH_FAILURE_CODES)[number];
+
+export function isAwsSwitchFailureCode(value: unknown): value is AwsSwitchFailureCode {
+  return AWS_SWITCH_FAILURE_CODES.some((code) => code === value);
+}
+
 export interface RoleSwitchResult {
   ok: boolean;
   error?: string;
+  code?: AwsSwitchFailureCode;
+  /** Set on a multi-session switch: AWS returns the destination instead of redirecting. */
+  destination?: string;
+  /** Reported by the readiness probe so the caller knows which switch flow applies. */
+  prismModeEnabled?: boolean;
 }
 
 const SWITCH_ROLE_DOMAINS: Record<Partition, string> = {
@@ -71,6 +96,9 @@ export function isRoleSwitchResult(value: unknown): value is RoleSwitchResult {
   const candidate = value as Record<string, unknown>;
   return (
     typeof candidate.ok === 'boolean' &&
-    (candidate.error === undefined || typeof candidate.error === 'string')
+    (candidate.error === undefined || typeof candidate.error === 'string') &&
+    (candidate.code === undefined || isAwsSwitchFailureCode(candidate.code)) &&
+    (candidate.destination === undefined || typeof candidate.destination === 'string') &&
+    (candidate.prismModeEnabled === undefined || typeof candidate.prismModeEnabled === 'boolean')
   );
 }

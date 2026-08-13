@@ -1,7 +1,10 @@
 import {
+  AwsSwitchFailure,
   buildAwsRedirectUrl,
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
+  classifyAwsSwitchStatus,
+  hasAssumedRole,
   isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
   resolveAwsCsrfValue,
@@ -15,6 +18,7 @@ const MULTI_SESSION_TIMEOUT_MS = 14_000;
 
 type AwsGlobals = typeof globalThis & {
   AWSC?: { Auth?: { getMbtc?: () => unknown } };
+  ConsoleNavService?: { AccountInfo?: unknown };
 };
 
 export default defineUnlistedScript(() => {
@@ -37,16 +41,21 @@ export default defineUnlistedScript(() => {
           throw new Error('AWS Role Hop switch request is invalid.');
 
         const metadata = readAwsConsoleSessionMetadata(document);
-        const endpoint = buildAwsSwitchEndpoint(request, metadata);
 
         if (metadata.prismModeEnabled) {
-          if (!metadata.sessionDifferentiator) {
-            throw new Error('AWS multi-session metadata is incomplete.');
+          // The session-scoped endpoint only exists on the session's own sign-in
+          // host, so guessing a default host here would fail authorization.
+          const { sessionDifferentiator, signInEndpoint } = metadata;
+          if (!sessionDifferentiator || !signInEndpoint) {
+            throw new Error(
+              'AWS multi-session details are incomplete. Reload the AWS Console tab and try again.',
+            );
           }
+          const endpoint = buildAwsSwitchEndpoint(request, metadata);
 
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), MULTI_SESSION_TIMEOUT_MS);
-          let body: { destination?: unknown };
+          let body: { destination?: unknown; errorCode?: unknown };
           try {
             const response = await fetch(endpoint, {
               method: 'POST',
@@ -62,16 +71,30 @@ export default defineUnlistedScript(() => {
                 redirectUri: buildAwsRedirectUrl(
                   window.location.href,
                   request.region,
-                  metadata.sessionDifferentiator,
+                  sessionDifferentiator,
                 ),
                 roleName: request.roleName,
               }),
               signal: controller.signal,
             });
-            if (!response.ok) {
-              throw new Error(`AWS switch-role request failed (${response.status}).`);
+            body = (await response.json().catch(() => ({}))) as {
+              destination?: unknown;
+              errorCode?: unknown;
+            };
+            const awsErrorCode = typeof body.errorCode === 'string' ? body.errorCode : undefined;
+            if (!response.ok || awsErrorCode) {
+              const failure = classifyAwsSwitchStatus(response.status, awsErrorCode);
+              throw new AwsSwitchFailure(
+                failure === 'unauthorized' &&
+                  hasAssumedRole(
+                    document,
+                    (globalThis as AwsGlobals).ConsoleNavService?.AccountInfo,
+                  )
+                  ? 'chained'
+                  : failure,
+                `AWS switch-role request failed (${response.status}).`,
+              );
             }
-            body = (await response.json()) as { destination?: unknown };
           } catch (error: unknown) {
             if (controller.signal.aborted) {
               throw new Error(
@@ -90,11 +113,14 @@ export default defineUnlistedScript(() => {
           if (!isAllowedAwsConsoleDestination(body.destination, request.partition)) {
             throw new Error('AWS returned an unsafe switch destination.');
           }
-          respond({ ok: true });
-          window.location.assign(body.destination);
+          // Navigating here would replace the session the switch was made from.
+          // The extension opens the destination instead, honouring the user's
+          // current-versus-new-tab preference.
+          respond({ ok: true, destination: body.destination });
           return;
         }
 
+        const endpoint = buildAwsSwitchEndpoint(request, metadata);
         const csrf = await resolveAwsCsrfValue((globalThis as AwsGlobals).AWSC?.Auth?.getMbtc?.());
         const fields = buildAwsStandardSwitchFields(request, window.location.href, csrf);
         const form = document.createElement('form');
@@ -116,6 +142,7 @@ export default defineUnlistedScript(() => {
         respond({
           ok: false,
           error: error instanceof Error ? error.message : 'AWS role switch failed.',
+          ...(error instanceof AwsSwitchFailure ? { code: error.code } : {}),
         });
       }
     })();

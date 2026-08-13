@@ -1,5 +1,5 @@
 import type { Partition } from './profile';
-import type { RoleSwitchRequest } from './role-handoff';
+import type { AwsSwitchFailureCode, RoleSwitchRequest } from './role-handoff';
 
 export interface AwsConsoleSessionMetadata {
   prismModeEnabled: boolean;
@@ -32,6 +32,33 @@ const CONSOLE_HOST_SUFFIXES: Record<Partition, readonly string[]> = {
   'aws-cn': ['console.amazonaws.cn', 'health.amazonaws.cn'],
 };
 
+/** Carries the classified reason for an AWS-rejected switch alongside its message. */
+export class AwsSwitchFailure extends Error {
+  readonly code: AwsSwitchFailureCode;
+
+  constructor(code: AwsSwitchFailureCode, message: string) {
+    super(message);
+    this.name = 'AwsSwitchFailure';
+    this.code = code;
+  }
+}
+
+/**
+ * A multi-session switch can fail with a 200 that carries an errorCode, so the
+ * body is as authoritative as the status.
+ */
+export function classifyAwsSwitchStatus(
+  status: number,
+  awsErrorCode?: string,
+): AwsSwitchFailureCode {
+  if (awsErrorCode === 'UNAUTHORIZED') return 'unauthorized';
+  if (status === 401 || status === 403) return 'unauthorized';
+  if (status === 404 || status === 410) return 'sessionMissing';
+  if (status === 429) return 'throttled';
+  if (status >= 500) return 'unavailable';
+  return 'rejected';
+}
+
 export function isAllowedAwsConsoleDestination(value: string, partition: Partition): boolean {
   try {
     const destination = new URL(value);
@@ -53,7 +80,14 @@ export function isAllowedAwsConsoleDestination(value: string, partition: Partiti
   }
 }
 
-export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSessionMetadata {
+interface ParsedAwsSessionData {
+  prismModeEnabled: boolean;
+  sessionDifferentiator?: string;
+  signInEndpoint?: string;
+  infrastructureRegion?: string;
+}
+
+function parseAwsSessionData(document: Document): ParsedAwsSessionData {
   const content = document
     .querySelector<HTMLMetaElement>('meta[name="awsc-session-data"]')
     ?.getAttribute('content');
@@ -69,10 +103,66 @@ export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSes
       ...(typeof parsed.signInEndpoint === 'string'
         ? { signInEndpoint: parsed.signInEndpoint }
         : {}),
+      ...(typeof parsed.infrastructureRegion === 'string'
+        ? { infrastructureRegion: parsed.infrastructureRegion }
+        : {}),
     };
   } catch {
     return { prismModeEnabled: false };
   }
+}
+
+/**
+ * Some Console pages omit signInEndpoint from the session metadata and publish
+ * it separately. A multi-session switch only exists on that exact host, so an
+ * unresolved endpoint would be sent to the wrong host and rejected.
+ */
+function readSignInEndpointFallback(
+  document: Document,
+  infrastructureRegion: string | undefined,
+): string | undefined {
+  const published = document.getElementById('awsc-signin-endpoint')?.getAttribute('content');
+  if (published) return published;
+  if (infrastructureRegion?.startsWith('us-gov-')) return 'signin.amazonaws-us-gov.com';
+  if (infrastructureRegion?.startsWith('cn-')) return 'signin.amazonaws.cn';
+  return undefined;
+}
+
+export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSessionMetadata {
+  const parsed = parseAwsSessionData(document);
+  const signInEndpoint =
+    parsed.signInEndpoint ?? readSignInEndpointFallback(document, parsed.infrastructureRegion);
+
+  return {
+    prismModeEnabled: parsed.prismModeEnabled,
+    ...(parsed.sessionDifferentiator
+      ? { sessionDifferentiator: parsed.sessionDifferentiator }
+      : {}),
+    ...(signInEndpoint ? { signInEndpoint } : {}),
+  };
+}
+
+/**
+ * The Console only publishes a role display name once a role has been assumed.
+ * A multi-session switch made from such a session is a role-to-role chain, which
+ * AWS refuses unless the target role trusts the assumed role.
+ *
+ * Current Console pages expose this through their nav service and only older
+ * pages still render the matching DOM nodes, so both are consulted.
+ */
+export function hasAssumedRole(document: Document, accountInfo?: unknown): boolean {
+  const info =
+    accountInfo && typeof accountInfo === 'object'
+      ? (accountInfo as Record<string, unknown>)
+      : undefined;
+  const publishedByService = [info?.roleDisplayNameAccount, info?.roleDisplayNameUser].some(
+    (value) => typeof value === 'string' && value.trim() !== '',
+  );
+  if (publishedByService) return true;
+
+  const account = document.getElementById('awsc-role-display-name-account')?.textContent?.trim();
+  const user = document.getElementById('awsc-role-display-name-user')?.textContent?.trim();
+  return Boolean(account || user);
 }
 
 export function resolveAwsSignInHost(candidate: string | undefined, partition: Partition): string {

@@ -6,6 +6,7 @@ import {
   type RoleSwitchRequest,
   type RoleSwitchResult,
 } from '../domain/role-handoff';
+import { readAwsConsoleSessionMetadata } from '../domain/switch-role-page';
 
 const BRIDGE_ID = 'rolehop-aws-console-bridge';
 const REQUEST_EVENT = 'rolehop:switch-request';
@@ -45,7 +46,12 @@ export default defineContentScript({
     browser.runtime.onMessage.addListener((message: unknown, _sender, sendResponse) => {
       if (message === ROLE_SWITCH_READY_MESSAGE_TYPE) {
         void bridgeReady
-          .then(() => sendResponse({ ok: true } satisfies RoleSwitchResult))
+          .then(() =>
+            sendResponse({
+              ok: true,
+              prismModeEnabled: readAwsConsoleSessionMetadata(document).prismModeEnabled,
+            } satisfies RoleSwitchResult),
+          )
           .catch((error: unknown) =>
             sendResponse({
               ok: false,
