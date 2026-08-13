@@ -574,6 +574,34 @@ describe('PopupApp — SSO mode entry points', () => {
     return vi.spyOn(browser.tabs, 'create').mockResolvedValue({ id: 8 } as never);
   }
 
+  it('tells the user what to do in each mode', async () => {
+    await seedMode('sso', [ssoProfile()]);
+    render(<PopupApp />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          'Pick an account to open it, or scan the portal again to refresh this list.',
+        ),
+      ).toBeDefined(),
+    );
+  });
+
+  it('moves to the SSO list when the switcher changes mode', async () => {
+    await seedMode('iam', [draft()]);
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access mode' }));
+    await user.click(within(group).getAllByRole('radio')[1]!);
+
+    await waitFor(async () => {
+      const stored = await loadAppState();
+      expect(stored.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
+      expect(stored.settings.accessMode).toBe('sso');
+    });
+  });
+
   it('points an empty SSO list at discovery rather than at import', async () => {
     await seedMode('sso');
     render(<PopupApp />);

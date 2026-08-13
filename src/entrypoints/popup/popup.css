@@ -626,3 +626,10 @@ body {
   background: var(--color-success-soft);
   border-radius: 10px;
 }
+
+.popup-guidance {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+}

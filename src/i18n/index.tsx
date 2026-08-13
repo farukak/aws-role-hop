@@ -66,6 +66,12 @@ const TURKISH_MESSAGES = {
   'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
   'Switch to SSO': 'SSO’ya geç',
   'Switch to IAM': 'IAM’e geç',
+  'Default IAM': 'Varsayılan IAM',
+  'Default SSO': 'Varsayılan SSO',
+  'Pick an account to open it, or scan the portal again to refresh this list.':
+    'Açmak için bir hesap seç ya da listeyi yenilemek için portalı tekrar tara.',
+  'Open this from an AWS Console tab, then pick a profile to switch roles there.':
+    'Bunu bir AWS Console sekmesinden aç, sonra rol değiştirmek için bir profil seç.',
   'You are on an AWS access portal.': 'Bir AWS erişim portalındasın.',
   'Scan this portal': 'Bu portalı tara',
   'Bring in your SSO accounts': 'SSO hesaplarını içeri al',

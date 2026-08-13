@@ -16,7 +16,7 @@ import {
   ProfileTypeBadge,
 } from '../../components/ProfileVisual';
 import {
-  DEFAULT_PROFILE_LIST_ID,
+  builtInListName,
   PARTITION_OPTIONS,
   PROFILE_LIST_NAME_MAX_LENGTH,
   ROLE_NAME_MAX_LENGTH,
@@ -343,9 +343,8 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                       aria-label={t('Import into profile list')}
                     >
                       {state.profileLists.map((list) => {
-                        const builtInDefault =
-                          list.id === DEFAULT_PROFILE_LIST_ID && list.name === 'Default';
-                        const name = builtInDefault ? t('Default') : list.name;
+                        const builtInDefault = builtInListName(list);
+                        const name = builtInDefault === null ? list.name : t(builtInDefault);
                         return (
                           <option key={list.id} value={list.id}>
                             {name}

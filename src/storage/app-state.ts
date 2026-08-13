@@ -2,7 +2,12 @@ import { browser } from 'wxt/browser';
 import { chooseProfileColorId } from '../domain/colors';
 import {
   type AccessMode,
+  DEFAULT_IAM_LIST_NAME,
   DEFAULT_PROFILE_LIST_ID,
+  DEFAULT_SSO_LIST_NAME,
+  DEFAULT_SSO_PROFILE_LIST_ID,
+  defaultListIdForMode,
+  defaultListNameForMode,
   PROFILE_COLOR_IDS,
   PROFILE_LIMIT,
   PROFILE_LIST_LIMIT,
@@ -82,6 +87,43 @@ function migrateToProfileLists(migrated: Record<string, unknown>): Record<string
   };
 }
 
+/**
+ * IAM and SSO get their own default list. The list everyone started with keeps its
+ * id and its IAM profiles under a clearer name, and any Identity Center profiles
+ * sitting in it move to the new SSO list rather than staying mixed in.
+ */
+function migrateToModeLists(migrated: Record<string, unknown>): Record<string, unknown> {
+  const lists = Array.isArray(migrated.profileLists)
+    ? migrated.profileLists
+        .filter(isRecord)
+        .map((list) =>
+          list.id === DEFAULT_PROFILE_LIST_ID && list.name === 'Default'
+            ? { ...list, name: DEFAULT_IAM_LIST_NAME }
+            : list,
+        )
+    : [];
+
+  const hasSsoList = lists.some((list) => list.id === DEFAULT_SSO_PROFILE_LIST_ID);
+  const profileLists = hasSsoList
+    ? lists
+    : [...lists, { id: DEFAULT_SSO_PROFILE_LIST_ID, name: DEFAULT_SSO_LIST_NAME }];
+
+  const storedProfiles: unknown = migrated.profiles;
+  const profiles = Array.isArray(storedProfiles)
+    ? (storedProfiles as unknown[]).map((profile: unknown) =>
+        isRecord(profile) && profile.type === 'sso' && profile.listId === DEFAULT_PROFILE_LIST_ID
+          ? { ...profile, listId: DEFAULT_SSO_PROFILE_LIST_ID }
+          : profile,
+      )
+    : storedProfiles;
+
+  const settings = isRecord(migrated.settings) ? migrated.settings : {};
+  const activeProfileListId =
+    settings.accessMode === 'sso' ? DEFAULT_SSO_PROFILE_LIST_ID : migrated.activeProfileListId;
+
+  return { ...migrated, version: 5, profileLists, profiles, activeProfileListId };
+}
+
 /** Each step is applied in order so any stored version reaches the current one. */
 function migrateStoredValue(value: unknown): unknown {
   if (!isRecord(value)) return value;
@@ -109,6 +151,11 @@ function migrateStoredValue(value: unknown): unknown {
         confirmProduction: false,
       },
     };
+  }
+
+  // Keep this last: every step above has to be able to reach it.
+  if (migrated.version === 4 && isRecord(migrated.settings)) {
+    migrated = migrateToModeLists(migrated);
   }
 
   return migrated;
@@ -319,6 +366,24 @@ export async function markProfileUsed(id: string): Promise<AppState> {
         profile.id === id ? { ...profile, lastUsedAt: now, updatedAt: now } : profile,
       ),
     };
+  });
+}
+
+/**
+ * Switching access path also switches the list on screen, so IAM and SSO stay
+ * separated without the user having to pick a list by hand.
+ */
+export async function setAccessMode(mode: AccessMode): Promise<AppState> {
+  return updateAppState((current) => {
+    const settings = { ...current.settings, accessMode: mode };
+    if (mode === 'unset') return { ...current, settings };
+
+    const listId = defaultListIdForMode(mode);
+    const profileLists = current.profileLists.some((list) => list.id === listId)
+      ? current.profileLists
+      : [...current.profileLists, { id: listId, name: defaultListNameForMode(mode) }];
+
+    return { ...current, profileLists, activeProfileListId: listId, settings };
   });
 }
 

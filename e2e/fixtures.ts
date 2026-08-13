@@ -191,8 +191,11 @@ export interface SeedOptions {
 export async function seed(page: Page, options: SeedOptions = {}): Promise<void> {
   const now = new Date().toISOString();
   const state = {
-    version: 4,
-    profileLists: [{ id: DEFAULT_LIST_ID, name: 'Default' }],
+    version: 5,
+    profileLists: [
+      { id: DEFAULT_LIST_ID, name: 'Default IAM' },
+      { id: '00000000-0000-4000-8000-000000000002', name: 'Default SSO' },
+    ],
     activeProfileListId: DEFAULT_LIST_ID,
     defaultProfileListId: DEFAULT_LIST_ID,
     settings: {

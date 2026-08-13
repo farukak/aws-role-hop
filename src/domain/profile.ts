@@ -10,6 +10,9 @@ export const PORTAL_URL_MAX_LENGTH = 2_048;
 export const REGION_MAX_LENGTH = 32;
 export const TAG_MAX_LENGTH = 24;
 export const DEFAULT_PROFILE_LIST_ID = '00000000-0000-4000-8000-000000000001';
+export const DEFAULT_SSO_PROFILE_LIST_ID = '00000000-0000-4000-8000-000000000002';
+export const DEFAULT_IAM_LIST_NAME = 'Default IAM';
+export const DEFAULT_SSO_LIST_NAME = 'Default SSO';
 export const PROFILE_COLOR_IDS = [
   'rose',
   'peach',
@@ -221,7 +224,7 @@ export const profileListSchema = z.strictObject({
 
 export const appStateSchema = z
   .strictObject({
-    version: z.literal(4),
+    version: z.literal(5),
     profiles: z.array(profileSchema).check(z.maxLength(PROFILE_LIMIT)),
     profileLists: z
       .array(profileListSchema)
@@ -275,11 +278,36 @@ export type ProfileList = z.infer<typeof profileListSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AppState = z.infer<typeof appStateSchema>;
 
+/** Each access path keeps its own list, so IAM and SSO profiles never mix by default. */
+export function defaultListIdForMode(mode: AccessMode): string {
+  return mode === 'sso' ? DEFAULT_SSO_PROFILE_LIST_ID : DEFAULT_PROFILE_LIST_ID;
+}
+
+export function defaultListNameForMode(mode: AccessMode): string {
+  return mode === 'sso' ? DEFAULT_SSO_LIST_NAME : DEFAULT_IAM_LIST_NAME;
+}
+
+/** Built-in list names are translated; a list the user named is shown verbatim. */
+export function builtInListName(
+  list: ProfileList,
+): typeof DEFAULT_IAM_LIST_NAME | typeof DEFAULT_SSO_LIST_NAME | null {
+  if (list.id === DEFAULT_PROFILE_LIST_ID && list.name === DEFAULT_IAM_LIST_NAME) {
+    return DEFAULT_IAM_LIST_NAME;
+  }
+  if (list.id === DEFAULT_SSO_PROFILE_LIST_ID && list.name === DEFAULT_SSO_LIST_NAME) {
+    return DEFAULT_SSO_LIST_NAME;
+  }
+  return null;
+}
+
 export function createDefaultState(): AppState {
   return {
-    version: 4,
+    version: 5,
     profiles: [],
-    profileLists: [{ id: DEFAULT_PROFILE_LIST_ID, name: 'Default' }],
+    profileLists: [
+      { id: DEFAULT_PROFILE_LIST_ID, name: DEFAULT_IAM_LIST_NAME },
+      { id: DEFAULT_SSO_PROFILE_LIST_ID, name: DEFAULT_SSO_LIST_NAME },
+    ],
     activeProfileListId: DEFAULT_PROFILE_LIST_ID,
     defaultProfileListId: DEFAULT_PROFILE_LIST_ID,
     settings: {

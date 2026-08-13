@@ -28,7 +28,7 @@ import {
 import { StatusCard } from '../../components/StatusCard';
 import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
 import {
-  DEFAULT_PROFILE_LIST_ID,
+  builtInListName,
   isAllowedPortalUrl,
   normalizePortalUrl,
   sortProfiles,
@@ -40,6 +40,7 @@ import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
 import { useI18n, type Message } from '../../i18n';
 import {
   markProfileUsed,
+  setAccessMode,
   setActiveProfileList,
   toggleFavorite,
   updateSettings,
@@ -139,7 +140,7 @@ export function PopupApp() {
     setActionError(null);
     setPendingMode(mode);
     try {
-      await updateSettings({ accessMode: mode });
+      await setAccessMode(mode);
       setQuery('');
       setSelectedIndex(0);
     } catch (modeError: unknown) {
@@ -147,6 +148,23 @@ export function PopupApp() {
         modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
       );
       setPendingMode(null);
+    }
+  }
+
+  /**
+   * Reveals the other access path without leaving the list the user is looking at,
+   * which is the whole point of the hint that offers it.
+   */
+  async function revealOtherMode(mode: AccessModeChoice): Promise<void> {
+    setActionError(null);
+    try {
+      await updateSettings({ accessMode: mode });
+      setQuery('');
+      setSelectedIndex(0);
+    } catch (modeError: unknown) {
+      setActionError(
+        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
+      );
     }
   }
 
@@ -294,6 +312,12 @@ export function PopupApp() {
         />
       </ChoiceGroup>
 
+      <p className="popup-guidance">
+        {accessMode === 'sso'
+          ? t('Pick an account to open it, or scan the portal again to refresh this list.')
+          : t('Open this from an AWS Console tab, then pick a profile to switch roles there.')}
+      </p>
+
       <label className="popup-list-picker">
         <Layers3 size={15} strokeWidth={1.8} aria-hidden="true" />
         <span className="visually-hidden">{t('Profile list')}</span>
@@ -303,12 +327,12 @@ export function PopupApp() {
           aria-label={t('Profile list')}
         >
           {state.profileLists.map((list) => {
-            const builtInDefault = list.id === DEFAULT_PROFILE_LIST_ID && list.name === 'Default';
-            const name = builtInDefault ? t('Default') : list.name;
+            const builtIn = builtInListName(list);
+            const name = builtIn === null ? list.name : t(builtIn);
             return (
               <option key={list.id} value={list.id}>
                 {name}
-                {list.id === state.defaultProfileListId && !builtInDefault
+                {list.id === state.defaultProfileListId && builtIn === null
                   ? ` — ${t('Default')}`
                   : ''}
               </option>
@@ -424,7 +448,7 @@ export function PopupApp() {
           </span>
           <button
             type="button"
-            onClick={() => void chooseAccessMode(accessMode === 'sso' ? 'iam' : 'sso')}
+            onClick={() => void revealOtherMode(accessMode === 'sso' ? 'iam' : 'sso')}
           >
             {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to SSO')}
           </button>

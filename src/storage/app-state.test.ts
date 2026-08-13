@@ -6,6 +6,7 @@ import {
   addProfile,
   createProfileList,
   deleteProfileList,
+  setAccessMode,
   editProfile,
   ensureAppState,
   importProfiles,
@@ -89,7 +90,7 @@ describe('ensureAppState', () => {
     await browser.storage.local.set({ [STORAGE_KEY]: legacy });
 
     const migrated = await ensureAppState();
-    expect(migrated.version).toBe(4);
+    expect(migrated.version).toBe(5);
     expect(migrated.settings.language).toBe('system');
     // Nothing was stored yet, so the first-run question is still owed.
     expect(migrated.settings.accessMode).toBe('unset');
@@ -296,7 +297,8 @@ describe('profile lists', () => {
     expect((await setDefaultProfileList(listId)).defaultProfileListId).toBe(listId);
 
     const deleted = await deleteProfileList(listId);
-    expect(deleted.profileLists).toHaveLength(1);
+    // The two built-in lists remain: one for IAM, one for SSO.
+    expect(deleted.profileLists).toHaveLength(2);
     expect(deleted.profiles).toHaveLength(0);
     expect(deleted.defaultProfileListId).toBe(deleted.profileLists[0]?.id);
   });
@@ -317,8 +319,14 @@ describe('profile lists', () => {
 
   it('does not delete the only profile list', async () => {
     await ensureAppState();
-    const { defaultProfileListId } = await loadAppState();
-    await expect(deleteProfileList(defaultProfileListId)).rejects.toThrow(/only profile list/i);
+    const state = await loadAppState();
+    // Remove every list but one, then the last one has to stay.
+    for (const list of state.profileLists.slice(1)) await deleteProfileList(list.id);
+    const remaining = await loadAppState();
+    expect(remaining.profileLists).toHaveLength(1);
+    await expect(deleteProfileList(remaining.profileLists[0]!.id)).rejects.toThrow(
+      /only profile list/i,
+    );
   });
 
   it('rejects list names that differ only by deterministic casing', async () => {
@@ -457,7 +465,7 @@ describe('restoreAppState and resetAppState', () => {
     };
     const restored = await restoreAppState({ ...current, version: 1, settings: legacySettings });
     expect(restored).toMatchObject({
-      version: 4,
+      version: 5,
       settings: { language: 'system', accessMode: 'unset' },
     });
   });
@@ -519,7 +527,7 @@ describe('watchAppState', () => {
   });
 });
 
-describe('version 4 migration', () => {
+describe('schema migrations', () => {
   const LIST_ID = '00000000-0000-4000-8000-000000000001';
   const ISO = '2026-01-01T00:00:00.000Z';
 
@@ -561,7 +569,7 @@ describe('version 4 migration', () => {
   it('keeps an IAM user in IAM mode', async () => {
     await seedVersion3([storedProfile({})]);
     const migrated = await ensureAppState();
-    expect(migrated.version).toBe(4);
+    expect(migrated.version).toBe(5);
     expect(migrated.settings.accessMode).toBe('iam');
     expect(migrated.profiles).toHaveLength(1);
   });
@@ -603,5 +611,134 @@ describe('version 4 migration', () => {
   it('turns the production confirmation off so every launch is one click', async () => {
     await seedVersion3([storedProfile({})], { confirmProduction: true });
     expect((await ensureAppState()).settings.confirmProduction).toBe(false);
+  });
+});
+
+describe('separate default lists per access path', () => {
+  const LEGACY_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SSO_LIST_ID = '00000000-0000-4000-8000-000000000002';
+  const ISO = '2026-01-01T00:00:00.000Z';
+
+  function legacyProfile(overrides: Record<string, unknown>): Record<string, unknown> {
+    const merged: Record<string, unknown> = {
+      type: 'role',
+      name: 'Core Production',
+      accountId: '024314596708',
+      roleName: 'OrganizationAccountAccessRole',
+      partition: 'aws',
+      environment: 'production',
+      favorite: false,
+      tags: [],
+      id: crypto.randomUUID(),
+      listId: LEGACY_LIST_ID,
+      colorId: 'rose',
+      createdAt: ISO,
+      updatedAt: ISO,
+      ...overrides,
+    };
+    return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== undefined));
+  }
+
+  /** A stored version 4 state: one list called Default holding both kinds of profile. */
+  async function seedVersion4(accessMode: string): Promise<void> {
+    const current = createDefaultState();
+    await browser.storage.local.set({
+      [STORAGE_KEY]: {
+        ...current,
+        version: 4,
+        profileLists: [{ id: LEGACY_LIST_ID, name: 'Default' }],
+        activeProfileListId: LEGACY_LIST_ID,
+        defaultProfileListId: LEGACY_LIST_ID,
+        settings: { ...current.settings, accessMode },
+        profiles: [
+          legacyProfile({}),
+          legacyProfile({
+            type: 'sso',
+            name: 'Platform',
+            accountId: '222222222222',
+            roleName: 'PlatformAccess',
+            portalUrl: 'https://example.awsapps.com/start',
+            partition: undefined,
+          }),
+        ],
+      },
+    });
+  }
+
+  it('renames the shared list for IAM and adds one for SSO', async () => {
+    await seedVersion4('iam');
+    const migrated = await ensureAppState();
+
+    expect(migrated.version).toBe(5);
+    expect(migrated.profileLists).toEqual([
+      { id: LEGACY_LIST_ID, name: 'Default IAM' },
+      { id: SSO_LIST_ID, name: 'Default SSO' },
+    ]);
+  });
+
+  it('moves Identity Center profiles out of the IAM list', async () => {
+    await seedVersion4('iam');
+    const migrated = await ensureAppState();
+
+    const byType = Object.fromEntries(
+      migrated.profiles.map((profile) => [profile.type, profile.listId]),
+    );
+    expect(byType.role).toBe(LEGACY_LIST_ID);
+    expect(byType.sso).toBe(SSO_LIST_ID);
+  });
+
+  it('shows the SSO list straight away for someone already in SSO mode', async () => {
+    await seedVersion4('sso');
+    expect((await ensureAppState()).activeProfileListId).toBe(SSO_LIST_ID);
+  });
+
+  it('leaves a list the user named alone', async () => {
+    const current = createDefaultState();
+    const customId = crypto.randomUUID();
+    await browser.storage.local.set({
+      [STORAGE_KEY]: {
+        ...current,
+        version: 4,
+        profileLists: [{ id: customId, name: 'Customer A' }],
+        activeProfileListId: customId,
+        defaultProfileListId: customId,
+        settings: { ...current.settings, accessMode: 'iam' },
+        profiles: [legacyProfile({ type: 'role', listId: customId })],
+      },
+    });
+
+    const migrated = await ensureAppState();
+    expect(migrated.profileLists[0]).toEqual({ id: customId, name: 'Customer A' });
+    expect(migrated.profiles[0]?.listId).toBe(customId);
+  });
+});
+
+describe('setAccessMode', () => {
+  it('puts the matching list on screen', async () => {
+    await ensureAppState();
+
+    const sso = await setAccessMode('sso');
+    expect(sso.settings.accessMode).toBe('sso');
+    expect(sso.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
+
+    const iam = await setAccessMode('iam');
+    expect(iam.activeProfileListId).toBe('00000000-0000-4000-8000-000000000001');
+  });
+
+  it('recreates the list for a mode whose list was deleted', async () => {
+    await ensureAppState();
+    await deleteProfileList('00000000-0000-4000-8000-000000000002');
+    expect((await loadAppState()).profileLists).toHaveLength(1);
+
+    const state = await setAccessMode('sso');
+    expect(state.profileLists.map((list) => list.name)).toContain('Default SSO');
+    expect(state.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
+  });
+
+  it('leaves the list alone while no path has been chosen', async () => {
+    const before = await ensureAppState();
+    const state = await setAccessMode('unset');
+    expect(state.activeProfileListId).toBe(before.activeProfileListId);
+    expect(state.settings.accessMode).toBe('unset');
   });
 });

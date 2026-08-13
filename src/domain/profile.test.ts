@@ -388,9 +388,9 @@ describe('appStateSchema', () => {
     expect(appStateSchema.safeParse(createDefaultState()).success).toBe(true);
   });
 
-  it('pins the schema version to 4', () => {
-    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 3 }).success).toBe(false);
-    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 5 }).success).toBe(false);
+  it('pins the schema version to 5', () => {
+    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 4 }).success).toBe(false);
+    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 6 }).success).toBe(false);
   });
 
   it('rejects dangling profile-list references', () => {
@@ -414,7 +414,7 @@ describe('appStateSchema', () => {
     expect(
       appStateSchema.safeParse({
         ...state,
-        profileLists: [original, { id: crypto.randomUUID(), name: ' default ' }],
+        profileLists: [original, { id: crypto.randomUUID(), name: ' default iam ' }],
       }).success,
     ).toBe(false);
     expect(
