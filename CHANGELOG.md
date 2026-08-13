@@ -6,6 +6,29 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-13
+
+### Added
+
+- A first-run question asking whether you reach AWS through IAM roles or SSO, with a separate mark for each path and an upfront note that SSO needs access to your AWS access portal. The choice is changeable in Preferences and from a switcher in the popup.
+- Discovery of Identity Center accounts and permission sets from an AWS access portal, so they no longer have to be typed by hand. The lookup runs inside a portal tab, which makes it same-origin and lets the browser attach the session that is already there; no cookie or token is read or stored.
+- Access to an AWS access portal origin as an **optional** permission. The browser asks for it only when discovery starts, so the default permission surface is unchanged and it can be withdrawn at any time.
+- Scanning the portal from the popup while a portal tab is open, including choosing which discovered roles to keep.
+- Separate built-in lists for the two access paths, **Default IAM** and **Default SSO**. Switching access path also switches the list on screen.
+- A short line in the popup describing what to do in the active access path.
+
+### Changed
+
+- Opening a profile takes a single click. The production confirmation is off by default and stays available in Preferences.
+- The popup lists only the profiles of the active access path, and says when the same list also holds profiles for the other one instead of hiding them silently.
+- Storage moved to version 5. Existing installs keep everything: the shared list is renamed **Default IAM**, Identity Center profiles in it move to **Default SSO**, and the access path is derived from the profiles already stored so nobody is sent back through the first-run question.
+
+### Fixed
+
+- Identity Center profiles could not be created on the current AWS access portal format, which is served from the host root rather than from `/start`.
+- The storage migration chain returned early for a stored version 3, so a later migration step would never have run.
+- A failed portal lookup reported one generic message. Failures now carry the endpoint and the reason, and a request that is refused inside the portal tab is reported instead of being swallowed.
+
 ## [0.1.3] - 2026-08-13
 
 ### Added
@@ -102,7 +125,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - All four modal dialogs expose an accessible name and description, the popup has a top-level heading, and both the popup and the options list announce how many profiles match the current search.
 - Removed a keyboard shortcut hint in the popup search field that no handler implemented and that showed a macOS-only key on every platform.
 
-[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/farukak/aws-role-hop/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/farukak/aws-role-hop/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/farukak/aws-role-hop/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/farukak/aws-role-hop/compare/v0.1.0...v0.1.1

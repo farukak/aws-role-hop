@@ -66,6 +66,16 @@ const TURKISH_MESSAGES = {
   'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
   'Switch to SSO': 'SSO’ya geç',
   'Switch to IAM': 'IAM’e geç',
+  'Choose between IAM and SSO when you first open AWS Role Hop, and switch access path whenever you want.':
+    'AWS Role Hop’u ilk açtığında IAM ile SSO arasında seç, erişim yolunu istediğin zaman değiştir.',
+  'Let AWS Role Hop read your accounts and permission sets from your AWS access portal instead of typing them.':
+    'Hesaplarını ve izin setlerini elle yazmak yerine AWS Role Hop’un AWS erişim portalından okumasına izin ver.',
+  'Scan the portal straight from the popup while you are on it.':
+    'Portaldayken taramayı doğrudan açılır pencereden yap.',
+  'Keep IAM and SSO profiles apart in their own default lists.':
+    'IAM ve SSO profillerini kendi varsayılan listelerinde ayrı tut.',
+  'Open any profile in a single click, with the production confirmation available when you want it.':
+    'Her profili tek tıkla aç; üretim onayı istediğinde açılabilir durumda kalsın.',
   'Default IAM': 'Varsayılan IAM',
   'Default SSO': 'Varsayılan SSO',
   'Pick an account to open it, or scan the portal again to refresh this list.':

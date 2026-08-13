@@ -8,6 +8,17 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    version: '0.2.0',
+    date: '2026-08-13',
+    highlights: [
+      'Choose between IAM and SSO when you first open AWS Role Hop, and switch access path whenever you want.',
+      'Let AWS Role Hop read your accounts and permission sets from your AWS access portal instead of typing them.',
+      'Scan the portal straight from the popup while you are on it.',
+      'Keep IAM and SSO profiles apart in their own default lists.',
+      'Open any profile in a single click, with the production confirmation available when you want it.',
+    ],
+  },
+  {
     version: '0.1.3',
     date: '2026-08-13',
     highlights: [
