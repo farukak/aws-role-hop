@@ -79,6 +79,58 @@ describe('AWS Console page bridge', () => {
     expect(document.querySelector('form')).toBeNull();
   });
 
+  it('reads the Console request token before a multi-session switch', async () => {
+    const getMbtc = vi.fn(() => 'csrf-value');
+    Object.defineProperty(globalThis, 'AWSC', {
+      configurable: true,
+      value: { Auth: { getMbtc } },
+    });
+    let requestedUrl: unknown;
+    const fetchSpy = vi.fn((input: RequestInfo | URL) => {
+      requestedUrl = input;
+      return Promise.resolve(Response.json({ destination: 'https://blocked.example.com/' }));
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+    const bridge = setupBridge({
+      prismModeEnabled: true,
+      sessionDifferentiator: '762888021956-efxjjxho',
+      signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
+    });
+
+    await expect(dispatch(bridge)).resolves.toEqual({
+      ok: false,
+      error: 'AWS returned an unsafe switch destination.',
+    });
+    expect(getMbtc).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(requestedUrl).toBe(
+      'https://eu-west-1.signin.aws.amazon.com/sessions/762888021956-efxjjxho/v1/switchrole',
+    );
+  });
+
+  it('still attempts a multi-session switch when the token accessor throws', async () => {
+    Object.defineProperty(globalThis, 'AWSC', {
+      configurable: true,
+      value: {
+        Auth: {
+          getMbtc: () => {
+            throw new Error('token unavailable');
+          },
+        },
+      },
+    });
+    const fetchSpy = vi.fn(() => Promise.resolve(new Response('', { status: 401 })));
+    vi.stubGlobal('fetch', fetchSpy);
+    const bridge = setupBridge({
+      prismModeEnabled: true,
+      sessionDifferentiator: 'session-1',
+      signInEndpoint: 'signin.aws.amazon.com',
+    });
+
+    await expect(dispatch(bridge)).resolves.toMatchObject({ code: 'unauthorized' });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('reports an unauthorized multi-session switch with its classified cause', async () => {
     const bridge = setupBridge({
       prismModeEnabled: true,
