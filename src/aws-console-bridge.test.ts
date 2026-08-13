@@ -79,6 +79,37 @@ describe('AWS Console page bridge', () => {
     expect(document.querySelector('form')).toBeNull();
   });
 
+  it('reports an unauthorized multi-session switch with its classified cause', async () => {
+    const bridge = setupBridge({
+      prismModeEnabled: true,
+      sessionDifferentiator: 'session-1',
+      signInEndpoint: 'signin.aws.amazon.com',
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('', { status: 401 }))),
+    );
+
+    await expect(dispatch(bridge)).resolves.toEqual({
+      ok: false,
+      code: 'unauthorized',
+      error: 'AWS switch-role request failed (401).',
+    });
+    expect(bridge.dataset.request).toBeUndefined();
+  });
+
+  it('refuses a multi-session switch when AWS omits the session sign-in host', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    const bridge = setupBridge({ prismModeEnabled: true, sessionDifferentiator: 'session-1' });
+
+    await expect(dispatch(bridge)).resolves.toEqual({
+      ok: false,
+      error: 'AWS multi-session details are incomplete. Reload the AWS Console tab and try again.',
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('aborts a multi-session request before the content-script deadline', async () => {
     vi.useFakeTimers();
     const bridge = setupBridge({

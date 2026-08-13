@@ -4,6 +4,7 @@ import {
   buildAwsRedirectUrl,
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
+  classifyAwsSwitchStatus,
   isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
   resolveAwsCsrfValue,
@@ -151,5 +152,20 @@ describe('AWS switch POST data', () => {
         'session-1',
       ),
     ).toBe('https://eu-west-1.console.aws.amazon.com/console/home?foo=bar&region=eu-west-1');
+  });
+});
+
+describe('classifyAwsSwitchStatus', () => {
+  it.each([
+    [401, 'unauthorized'],
+    [403, 'unauthorized'],
+    [404, 'sessionMissing'],
+    [410, 'sessionMissing'],
+    [429, 'throttled'],
+    [500, 'unavailable'],
+    [503, 'unavailable'],
+    [400, 'rejected'],
+  ] as const)('maps %i to %s', (status, expected) => {
+    expect(classifyAwsSwitchStatus(status)).toBe(expected);
   });
 });

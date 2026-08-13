@@ -1,5 +1,5 @@
 import type { Partition } from './profile';
-import type { RoleSwitchRequest } from './role-handoff';
+import type { AwsSwitchFailureCode, RoleSwitchRequest } from './role-handoff';
 
 export interface AwsConsoleSessionMetadata {
   prismModeEnabled: boolean;
@@ -31,6 +31,25 @@ const CONSOLE_HOST_SUFFIXES: Record<Partition, readonly string[]> = {
   'aws-us-gov': ['console.amazonaws-us-gov.com', 'phd.amazonaws-us-gov.com'],
   'aws-cn': ['console.amazonaws.cn', 'health.amazonaws.cn'],
 };
+
+/** Carries the classified reason for an AWS-rejected switch alongside its message. */
+export class AwsSwitchFailure extends Error {
+  readonly code: AwsSwitchFailureCode;
+
+  constructor(code: AwsSwitchFailureCode, message: string) {
+    super(message);
+    this.name = 'AwsSwitchFailure';
+    this.code = code;
+  }
+}
+
+export function classifyAwsSwitchStatus(status: number): AwsSwitchFailureCode {
+  if (status === 401 || status === 403) return 'unauthorized';
+  if (status === 404 || status === 410) return 'sessionMissing';
+  if (status === 429) return 'throttled';
+  if (status >= 500) return 'unavailable';
+  return 'rejected';
+}
 
 export function isAllowedAwsConsoleDestination(value: string, partition: Partition): boolean {
   try {

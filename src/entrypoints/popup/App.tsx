@@ -21,12 +21,22 @@ import {
   getProfileToneStyle,
 } from '../../components/ProfileVisual';
 import { StatusCard } from '../../components/StatusCard';
-import { navigateToProfile } from '../../domain/navigation';
+import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
 import { DEFAULT_PROFILE_LIST_ID, sortProfiles, type Profile } from '../../domain/profile';
 import { searchProfiles } from '../../domain/search';
 import { useAppState, useTheme } from '../../hooks/useAppState';
-import { useI18n } from '../../i18n';
+import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
+import { useI18n, type Message } from '../../i18n';
 import { markProfileUsed, setActiveProfileList, toggleFavorite } from '../../storage/app-state';
+
+const SWITCH_FAILURE_MESSAGES: Record<AwsSwitchFailureCode, Message> = {
+  unauthorized:
+    'AWS did not authorize this switch. Sign in to this AWS Console session again, then try again.',
+  sessionMissing: 'This AWS Console session is no longer available. Reload the tab and try again.',
+  throttled: 'AWS is limiting switch requests right now. Wait a moment and try again.',
+  unavailable: 'AWS could not complete the switch. Try again in a moment.',
+  rejected: 'AWS rejected the switch request.',
+};
 
 export function PopupApp() {
   const { t } = useI18n();
@@ -59,10 +69,13 @@ export function PopupApp() {
       await markProfileUsed(profile.id);
       window.close();
     } catch (switchError: unknown) {
+      const failureCode = switchError instanceof RoleSwitchError ? switchError.code : undefined;
       setActionError(
-        switchError instanceof Error
-          ? switchError.message
-          : t('The browser could not open this profile.'),
+        failureCode
+          ? t(SWITCH_FAILURE_MESSAGES[failureCode])
+          : switchError instanceof Error
+            ? switchError.message
+            : t('The browser could not open this profile.'),
       );
       setBusyProfileId(null);
     }

@@ -5,8 +5,20 @@ import {
   buildRoleSwitchUrl,
   isRoleSwitchResult,
   ROLE_SWITCH_READY_MESSAGE_TYPE,
+  type AwsSwitchFailureCode,
   type RoleSwitchRequest,
 } from './role-handoff';
+
+/** A switch AWS itself rejected, tagged so the interface can explain the cause. */
+export class RoleSwitchError extends Error {
+  readonly code?: AwsSwitchFailureCode;
+
+  constructor(message: string, code?: AwsSwitchFailureCode) {
+    super(message);
+    this.name = 'RoleSwitchError';
+    if (code) this.code = code;
+  }
+}
 
 const TAB_READY_TIMEOUT_MS = 15_000;
 const BRIDGE_READY_TIMEOUT_MS = 3_000;
@@ -62,10 +74,10 @@ export async function navigateToProfile(
   if (targetTab.status !== 'complete') await waitForTabReady(targetTab.id);
   const result = await sendSwitchRequestWhenReady(targetTab.id, buildRoleSwitchRequest(profile));
   if (!isRoleSwitchResult(result) || !result.ok) {
-    throw new Error(
-      isRoleSwitchResult(result) && result.error
-        ? result.error
-        : 'AWS Console rejected the AWS Role Hop request.',
+    const failure = isRoleSwitchResult(result) ? result : undefined;
+    throw new RoleSwitchError(
+      failure?.error ?? 'AWS Console rejected the AWS Role Hop request.',
+      failure?.code,
     );
   }
 }
