@@ -50,6 +50,16 @@ const TURKISH_MESSAGES = {
   'Your experience': 'Deneyimin',
   'Control appearance, navigation, and local data.': 'Görünümü, gezinmeyi ve yerel verileri yönet.',
   'Access mode': 'Erişim modu',
+  'How do you use AWS?': 'AWS’i nasıl kullanıyorsun?',
+  'Choose the access path AWS Role Hop should open with. You can change it later in settings.':
+    'AWS Role Hop’un hangi erişim yoluyla açılacağını seç. Bunu daha sonra ayarlardan değiştirebilirsin.',
+  'Switch roles from an authenticated AWS Console tab.':
+    'Kimliği doğrulanmış bir AWS Console sekmesinden rol değiştir.',
+  'Open permission sets through your AWS access portal.':
+    'İzin setlerini AWS erişim portalın üzerinden aç.',
+  'AWS Role Hop asks for portal access only when you choose Identity Center.':
+    'AWS Role Hop portal erişimini yalnızca Identity Center’ı seçtiğinde ister.',
+  'Could not save the access mode.': 'Erişim modu kaydedilemedi.',
   'Choose which AWS access path AWS Role Hop is set up for.':
     'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
   'IAM roles': 'IAM rolleri',

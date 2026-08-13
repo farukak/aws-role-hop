@@ -23,8 +23,10 @@ function draft(overrides: Record<string, unknown> = {}) {
 }
 
 async function seed(...drafts: ReturnType<typeof draft>[]): Promise<void> {
+  const base = createDefaultState();
   await saveAppState({
-    ...createDefaultState(),
+    ...base,
+    settings: { ...base.settings, accessMode: 'iam' },
     profiles: drafts.map((entry) => createProfile(entry)),
   });
 }
@@ -285,7 +287,12 @@ describe('PopupApp — switching profiles', () => {
   it('duplicates the Console tab for the new-tab preference', async () => {
     await saveAppState({
       ...createDefaultState(),
-      settings: { ...createDefaultState().settings, openBehavior: 'new', confirmProduction: false },
+      settings: {
+        ...createDefaultState().settings,
+        accessMode: 'iam',
+        openBehavior: 'new',
+        confirmProduction: false,
+      },
       profiles: [createProfile(draft({ environment: 'production' }))],
     });
     mockAwsConsoleTab();
@@ -365,5 +372,65 @@ describe('PopupApp — favorites', () => {
 
     await waitFor(() => expect(profileOptions()).toHaveLength(2));
     expect(profileOptions()[0]?.textContent).toContain('Zulu');
+  });
+});
+
+describe('PopupApp — first-run access mode', () => {
+  async function seedUnset(): Promise<void> {
+    const base = createDefaultState();
+    await saveAppState({
+      ...base,
+      settings: { ...base.settings, accessMode: 'unset' },
+      profiles: [createProfile(draft())],
+    });
+  }
+
+  it('asks which access path to use before showing any profile', async () => {
+    await seedUnset();
+    render(<PopupApp />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'How do you use AWS?' })).toBeDefined(),
+    );
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.queryByLabelText('Search profiles')).toBeNull();
+  });
+
+  it('discloses that Identity Center needs portal access before it is chosen', async () => {
+    await seedUnset();
+    render(<PopupApp />);
+
+    await waitFor(() => screen.getByRole('button', { name: /IAM Identity Center/ }));
+    expect(screen.getByText('Needs access to your AWS access portal')).toBeDefined();
+  });
+
+  it('persists the Identity Center choice and leaves the question behind', async () => {
+    await seedUnset();
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await user.click(
+      await waitFor(() => screen.getByRole('button', { name: /IAM Identity Center/ })),
+    );
+
+    await waitFor(async () => {
+      expect((await loadAppState()).settings.accessMode).toBe('sso');
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'How do you use AWS?' })).toBeNull(),
+    );
+  });
+
+  it('persists the IAM choice and shows the profile list', async () => {
+    await seedUnset();
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await user.click(await waitFor(() => screen.getByRole('button', { name: /IAM roles/ })));
+
+    await waitFor(async () => {
+      expect((await loadAppState()).settings.accessMode).toBe('iam');
+    });
+    await waitFor(() => expect(screen.getByRole('listbox')).toBeDefined());
   });
 });

@@ -12,6 +12,8 @@ import {
   X,
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
+import { AccessModeChooser } from './AccessModeChooser';
+import type { AccessModeChoice } from '../../components/AccessModeMark';
 import { Brand } from '../../components/Brand';
 import {
   EnvironmentBadge,
@@ -27,7 +29,12 @@ import { searchProfiles } from '../../domain/search';
 import { useAppState, useTheme } from '../../hooks/useAppState';
 import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
 import { useI18n, type Message } from '../../i18n';
-import { markProfileUsed, setActiveProfileList, toggleFavorite } from '../../storage/app-state';
+import {
+  markProfileUsed,
+  setActiveProfileList,
+  toggleFavorite,
+  updateSettings,
+} from '../../storage/app-state';
 
 const SWITCH_FAILURE_MESSAGES: Record<AwsSwitchFailureCode, Message> = {
   unauthorized:
@@ -48,6 +55,7 @@ export function PopupApp() {
   const [busyProfileId, setBusyProfileId] = useState<string | null>(null);
   const [pendingProduction, setPendingProduction] = useState<Profile | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingMode, setPendingMode] = useState<AccessModeChoice | null>(null);
 
   useTheme(state?.settings.theme);
 
@@ -89,6 +97,19 @@ export function PopupApp() {
       return;
     }
     void switchToProfile(profile);
+  }
+
+  async function chooseAccessMode(mode: AccessModeChoice): Promise<void> {
+    setActionError(null);
+    setPendingMode(mode);
+    try {
+      await updateSettings({ accessMode: mode });
+    } catch (modeError: unknown) {
+      setActionError(
+        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
+      );
+      setPendingMode(null);
+    }
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
@@ -178,6 +199,16 @@ export function PopupApp() {
           }
         />
       </main>
+    );
+  }
+
+  if (state.settings.accessMode === 'unset') {
+    return (
+      <AccessModeChooser
+        onChoose={(mode) => void chooseAccessMode(mode)}
+        busy={pendingMode}
+        error={actionError}
+      />
     );
   }
 

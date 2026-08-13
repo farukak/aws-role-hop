@@ -392,3 +392,94 @@ body {
   justify-content: center;
   gap: 8px;
 }
+
+.popup-shell--choice {
+  gap: 14px;
+}
+
+.access-mode-choice__heading h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.access-mode-choice__heading p {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.access-mode-choice {
+  display: grid;
+  gap: 10px;
+}
+
+.access-mode-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.access-mode-card:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.access-mode-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.access-mode-card:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.access-mode-mark {
+  flex: 0 0 auto;
+  border-radius: 12px;
+}
+
+.access-mode-card__copy {
+  display: grid;
+  gap: 3px;
+}
+
+.access-mode-card__copy strong {
+  font-size: 0.94rem;
+  font-weight: 640;
+  color: var(--color-text);
+}
+
+.access-mode-card__copy small {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.access-mode-card__note {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 560;
+  color: var(--color-accent-text);
+}
+
+.access-mode-choice__footnote {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+}
