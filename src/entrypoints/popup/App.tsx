@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
 import { AccessModeChooser } from './AccessModeChooser';
+import { PortalScan } from './PortalScan';
 import { AccessModeMark, type AccessModeChoice } from '../../components/AccessModeMark';
 import { ChoiceGroup } from '../../components/ChoiceGroup';
 import { Brand } from '../../components/Brand';
@@ -65,6 +66,8 @@ export function PopupApp() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingMode, setPendingMode] = useState<AccessModeChoice | null>(null);
   const [portalTabUrl, setPortalTabUrl] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useTheme(state?.settings.theme);
 
@@ -364,12 +367,30 @@ export function PopupApp() {
           : t('{count} profiles available.', { count: listProfiles.length })}
       </p>
 
-      {accessMode === 'sso' && portalTabUrl !== null && (
-        <div className="popup-mode-hint">
-          <span>{t('You are on an AWS access portal.')}</span>
-          <button type="button" onClick={() => void openDiscovery()}>
-            {t('Scan this portal')}
-          </button>
+      {accessMode === 'sso' &&
+        portalTabUrl !== null &&
+        (scanning ? (
+          <PortalScan
+            portalUrl={portalTabUrl}
+            listId={state.activeProfileListId}
+            onAdded={(added, skipped) => {
+              setScanning(false);
+              setNotice(t('{added} added, {skipped} already existed.', { added, skipped }));
+            }}
+            onClose={() => setScanning(false)}
+          />
+        ) : (
+          <div className="popup-mode-hint">
+            <span>{t('You are on an AWS access portal.')}</span>
+            <button type="button" onClick={() => setScanning(true)}>
+              {t('Scan this portal')}
+            </button>
+          </div>
+        ))}
+
+      {notice !== null && (
+        <div className="popup-notice" role="status">
+          {notice}
         </div>
       )}
 
@@ -422,7 +443,10 @@ export function PopupApp() {
                 <button
                   className="primary-button"
                   type="button"
-                  onClick={() => void openDiscovery()}
+                  onClick={() => {
+                    if (portalTabUrl === null) void openDiscovery();
+                    else setScanning(true);
+                  }}
                 >
                   <Radar size={16} aria-hidden="true" />
                   {portalTabUrl === null ? t('Find accounts and roles') : t('Scan this portal')}

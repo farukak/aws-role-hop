@@ -1,22 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Radar, ShieldCheck } from 'lucide-react';
+import { DISCOVERY_FAILURE_MESSAGES } from '../../discovery/failure-messages';
 import {
   discoverPortalProfiles,
   PortalDiscoveryError,
   requestPortalAccess,
-  type PortalDiscoveryFailure,
 } from '../../discovery/portal-session';
 import { isAllowedPortalUrl, type AppState, type ProfileDraft } from '../../domain/profile';
 import { importProfiles } from '../../storage/app-state';
-import { useI18n, type Message } from '../../i18n';
+import { useI18n } from '../../i18n';
 import type { Notify } from './App';
-
-const DISCOVERY_FAILURE_MESSAGES: Record<PortalDiscoveryFailure, Message> = {
-  permissionDenied: 'Portal access is needed before AWS Role Hop can read your accounts.',
-  portalTabUnavailable: 'The access portal tab could not be opened.',
-  unauthorized: 'Sign in to the access portal in a tab, then try again.',
-  failed: 'The access portal could not be read.',
-};
 
 /**
  * The popup can hand over the portal it saw in the active tab. Only a real portal

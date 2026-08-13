@@ -7,6 +7,22 @@ import { browser } from 'wxt/browser';
 import { PopupApp } from './App';
 import { createDefaultState, createProfile, profileDraftSchema } from '../../domain/profile';
 import { loadAppState, saveAppState } from '../../storage/app-state';
+import {
+  discoverPortalProfiles,
+  hasPortalAccess,
+  requestPortalAccess,
+} from '../../discovery/portal-session';
+import type * as PortalSession from '../../discovery/portal-session';
+
+vi.mock('../../discovery/portal-session', async (importOriginal) => {
+  const actual = await importOriginal<typeof PortalSession>();
+  return {
+    ...actual,
+    hasPortalAccess: vi.fn(),
+    requestPortalAccess: vi.fn(),
+    discoverPortalProfiles: vi.fn(),
+  };
+});
 
 function draft(overrides: Record<string, unknown> = {}) {
   return profileDraftSchema.parse({
@@ -579,16 +595,61 @@ describe('PopupApp — SSO mode entry points', () => {
     expect(screen.getByRole('button', { name: /Import profiles/ })).toBeDefined();
   });
 
-  it('offers to scan the portal the popup was opened on', async () => {
+  function discovered(roleName: string) {
+    return profileDraftSchema.parse({
+      type: 'sso',
+      name: 'Dev',
+      accountId: '562582201260',
+      roleName,
+      portalUrl: PORTAL,
+      environment: 'other',
+      favorite: false,
+      tags: [],
+    });
+  }
+
+  it('scans the portal inside the popup and keeps the selection', async () => {
     await seedMode('sso', [ssoProfile()]);
     const create = mockPortalTab(`${PORTAL}/#/`);
+    vi.mocked(hasPortalAccess).mockResolvedValue(true);
+    vi.mocked(discoverPortalProfiles).mockResolvedValue({
+      drafts: [discovered('BackendViewOnlyAccess')],
+      accountCount: 1,
+      skipped: 0,
+    });
     render(<PopupApp />);
     const user = userEvent.setup();
 
     await user.click(await waitFor(() => screen.getByRole('button', { name: 'Scan this portal' })));
 
-    const opened = create.mock.calls[0]?.[0];
-    expect(String(opened?.url)).toContain(`#discover?portal=${encodeURIComponent(`${PORTAL}/`)}`);
+    await waitFor(() => expect(screen.getByText('Found 1 roles across 1 accounts.')).toBeDefined());
+    await user.click(screen.getByRole('button', { name: 'Add selected profiles' }));
+
+    await waitFor(async () => {
+      const stored = await loadAppState();
+      expect(stored.profiles.map((profile) => profile.roleName)).toContain('BackendViewOnlyAccess');
+    });
+    expect(screen.getByText('1 added, 0 already existed.')).toBeDefined();
+    // The whole flow stayed in the popup; no settings tab was opened.
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('explains a refused permission without leaving the popup', async () => {
+    await seedMode('sso', [ssoProfile()]);
+    mockPortalTab(`${PORTAL}/#/`);
+    vi.mocked(hasPortalAccess).mockResolvedValue(false);
+    vi.mocked(requestPortalAccess).mockResolvedValue(false);
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await user.click(await waitFor(() => screen.getByRole('button', { name: 'Scan this portal' })));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Portal access is needed before AWS Role Hop can read your accounts.'),
+      ).toBeDefined(),
+    );
+    expect(screen.getByRole('button', { name: /Find accounts and roles/ })).toBeDefined();
   });
 
   it('stays quiet about scanning when the tab is not a portal', async () => {
