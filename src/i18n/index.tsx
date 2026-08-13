@@ -290,6 +290,7 @@ const TURKISH_MESSAGES = {
   'Could not open the imported profile list.': 'İçe aktarılan profil listesi açılamadı.',
   'Could not open the selected profile list.': 'Seçili profil listesi açılamadı.',
   'Manage selected list': 'Seçili listeyi yönet',
+  'Load list into editor': 'Listeyi editöre yükle',
   'Existing profiles are managed in Profiles; raw import text is not stored.':
     'Mevcut profiller Profiller ekranından yönetilir; ham içe aktarma metni saklanmaz.',
   '{added} profiles imported.': '{added} profil içe aktarıldı.',
