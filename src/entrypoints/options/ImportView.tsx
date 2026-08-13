@@ -27,6 +27,7 @@ import {
 import { parseAwsConfig, type AwsConfigImportResult } from '../../import/aws-config';
 import { findImportCollisions } from '../../import/collisions';
 import { detectImportFormat, type IgnoredSection, type ImportIssue } from '../../import/format';
+import { serializeProfilesToAwsConfig } from '../../import/serialize';
 import {
   organizationAccountsToDrafts,
   parseOrganizationsAccounts,
@@ -165,6 +166,17 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
     setConfig(next);
     setPreview(null);
     setAnalyzing(Boolean(next.trim()) && !nextTooLarge);
+  }
+
+  /**
+   * Raw import text is never stored, so the editor is filled from the list's
+   * canonical profiles instead. Editing them here and importing again updates
+   * nothing that already exists; it adds what is new.
+   */
+  function loadListIntoEditor(listId: string): void {
+    const listProfiles = state.profiles.filter((profile) => profile.listId === listId);
+    if (listProfiles.length === 0) return;
+    updateConfig(serializeProfilesToAwsConfig(listProfiles));
   }
 
   async function readConfigFile(file: File): Promise<void> {
@@ -319,12 +331,15 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                     <select
                       className="select-input"
                       value={selectedTargetListId}
-                      onChange={(event) =>
+                      onChange={(event) => {
+                        const nextListId = event.target.value;
                         setTargetSelection({
                           defaultProfileListId: state.defaultProfileListId,
-                          targetListId: event.target.value,
-                        })
-                      }
+                          targetListId: nextListId,
+                        });
+                        // Never discard something the user is already writing.
+                        if (!config.trim()) loadListIntoEditor(nextListId);
+                      }}
                       aria-label={t('Import into profile list')}
                     >
                       {state.profileLists.map((list) => {
@@ -342,6 +357,15 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                       })}
                     </select>
                   </label>
+                  {destinationProfiles.length > 0 && (
+                    <button
+                      className="secondary-button import-target-manage"
+                      type="button"
+                      onClick={() => loadListIntoEditor(selectedTargetListId)}
+                    >
+                      {t('Load list into editor')}
+                    </button>
+                  )}
                   <button
                     className="secondary-button import-target-manage"
                     type="button"
