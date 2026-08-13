@@ -1913,3 +1913,80 @@ body {
     padding-bottom: 0;
   }
 }
+
+.discover-panel {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.discover-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.discover-results {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.discover-results__summary {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.discover-results__summary p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.discover-results__bulk {
+  display: flex;
+  gap: 8px;
+}
+
+.discover-list {
+  display: grid;
+  gap: 6px;
+  max-height: 340px;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.discover-list label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  cursor: pointer;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.discover-list label:hover {
+  border-color: var(--color-border-strong);
+}
+
+.discover-list__copy {
+  display: grid;
+  gap: 2px;
+}
+
+.discover-list__copy strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.discover-list__copy small {
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+}

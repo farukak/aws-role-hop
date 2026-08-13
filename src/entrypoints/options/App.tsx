@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   ExternalLink,
   FileInput,
+  Radar,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -13,12 +14,13 @@ import { StatusCard } from '../../components/StatusCard';
 import { useAppState, useTheme } from '../../hooks/useAppState';
 import { setActiveProfileList } from '../../storage/app-state';
 import { useI18n } from '../../i18n';
+import { DiscoverView } from './DiscoverView';
 import { ImportView } from './ImportView';
 import { PreferencesView } from './PreferencesView';
 import { ProfilesView } from './ProfilesView';
 import { WhatsNewView } from './WhatsNewView';
 
-export type OptionsView = 'profiles' | 'import' | 'preferences' | 'whats-new';
+export type OptionsView = 'profiles' | 'import' | 'discover' | 'preferences' | 'whats-new';
 export type NoticeTone = 'success' | 'error' | 'info';
 export type Notify = (message: string, tone?: NoticeTone) => void;
 
@@ -31,13 +33,17 @@ interface Notice {
 const NAV_ITEMS = [
   { id: 'profiles', label: 'Profiles', icon: UsersRound },
   { id: 'import', label: 'Import', icon: FileInput },
+  { id: 'discover', label: 'Discover', icon: Radar },
   { id: 'preferences', label: 'Preferences', icon: Settings2 },
   { id: 'whats-new', label: "What's new", icon: Sparkles },
 ] as const;
 
 export function resolveOptionsView(hash: string): OptionsView {
   const candidate = hash.replace(/^#/, '');
-  return candidate === 'import' || candidate === 'preferences' || candidate === 'whats-new'
+  return candidate === 'import' ||
+    candidate === 'discover' ||
+    candidate === 'preferences' ||
+    candidate === 'whats-new'
     ? candidate
     : 'profiles';
 }
@@ -103,7 +109,9 @@ export function OptionsApp() {
           <Brand size={40} />
         </div>
         <nav className="options-nav" aria-label={t('Settings')}>
-          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
+          {NAV_ITEMS.filter(
+            ({ id }) => id !== 'discover' || state.settings.accessMode === 'sso',
+          ).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -151,6 +159,13 @@ export function OptionsApp() {
             notify={notify}
             onImported={showProfileList}
             onManageList={showProfileList}
+          />
+        )}
+        {activeView === 'discover' && (
+          <DiscoverView
+            state={state}
+            notify={notify}
+            onImported={(listId) => void showProfileList(listId)}
           />
         )}
         {activeView === 'preferences' && (

@@ -65,6 +65,30 @@ const TURKISH_MESSAGES = {
   'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
   'Switch to Identity Center': 'Identity Center’a geç',
   'Switch to IAM': 'IAM’e geç',
+  Discover: 'Keşfet',
+  'Find accounts from your AWS access portal': 'AWS erişim portalından hesapları bul',
+  'AWS Role Hop asks the portal which accounts and permission sets you can use, then turns them into profiles.':
+    'AWS Role Hop portala hangi hesapları ve izin setlerini kullanabildiğini sorar, sonra bunları profile dönüştürür.',
+  'Portal access stays optional': 'Portal erişimi isteğe bağlı kalır',
+  'Your browser asks before AWS Role Hop may reach the portal. The lookup runs in a portal tab with your existing session, and no token is ever read or stored.':
+    'AWS Role Hop portala erişmeden önce tarayıcın izin ister. Sorgu mevcut oturumunla bir portal sekmesinde çalışır; hiçbir jeton okunmaz veya saklanmaz.',
+  'Access portal URL': 'Erişim portalı adresi',
+  'Find accounts and roles': 'Hesapları ve rolleri bul',
+  'Searching the access portal…': 'Erişim portalı taranıyor…',
+  'Found {roles} roles across {accounts} accounts.': '{accounts} hesapta {roles} rol bulundu.',
+  'Nothing was found in this portal.': 'Bu portalda bir şey bulunamadı.',
+  'Select all': 'Tümünü seç',
+  'Clear selection': 'Seçimi temizle',
+  'Add discovered profiles to': 'Bulunan profilleri şuraya ekle',
+  'Add selected profiles': 'Seçili profilleri ekle',
+  '{added} added, {skipped} already existed.': '{added} eklendi, {skipped} zaten vardı.',
+  'The discovered profiles could not be added.': 'Bulunan profiller eklenemedi.',
+  'Portal access is needed before AWS Role Hop can read your accounts.':
+    'AWS Role Hop hesaplarını okuyabilmek için portal erişimi gerekir.',
+  'The access portal tab could not be opened.': 'Erişim portalı sekmesi açılamadı.',
+  'Sign in to the access portal in a tab, then try again.':
+    'Portalı bir sekmede aç ve giriş yap, sonra tekrar dene.',
+  'The access portal could not be read.': 'Erişim portalı okunamadı.',
   'Choose which AWS access path AWS Role Hop is set up for.':
     'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
   'IAM roles': 'IAM rolleri',
