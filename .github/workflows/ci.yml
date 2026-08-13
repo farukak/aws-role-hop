@@ -40,6 +40,15 @@ jobs:
       - name: Validate source and browser builds
         run: npm run check
 
+      - name: Keep the loaded-extension failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-failure-report
+          path: .output/e2e
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Validate the Firefox add-on package
         run: npx web-ext lint --source-dir .output/firefox-mv3
 
