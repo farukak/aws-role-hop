@@ -89,8 +89,10 @@ describe('ensureAppState', () => {
     await browser.storage.local.set({ [STORAGE_KEY]: legacy });
 
     const migrated = await ensureAppState();
-    expect(migrated.version).toBe(3);
+    expect(migrated.version).toBe(4);
     expect(migrated.settings.language).toBe('system');
+    // Nothing was stored yet, so the first-run question is still owed.
+    expect(migrated.settings.accessMode).toBe('unset');
     expect(await readRaw()).toEqual(migrated);
   });
 
@@ -454,7 +456,10 @@ describe('restoreAppState and resetAppState', () => {
       hideAccountIds: current.settings.hideAccountIds,
     };
     const restored = await restoreAppState({ ...current, version: 1, settings: legacySettings });
-    expect(restored).toMatchObject({ version: 3, settings: { language: 'system' } });
+    expect(restored).toMatchObject({
+      version: 4,
+      settings: { language: 'system', accessMode: 'unset' },
+    });
   });
 
   it('rejects an invalid backup without touching storage', async () => {
@@ -511,5 +516,84 @@ describe('watchAppState', () => {
     watchAppState(listener);
     await browser.storage.local.set({ [STORAGE_KEY]: { version: 99 } });
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe('access mode migration', () => {
+  const LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const ISO = '2026-01-01T00:00:00.000Z';
+
+  function storedProfile(overrides: Record<string, unknown>): Record<string, unknown> {
+    const merged: Record<string, unknown> = {
+      type: 'role',
+      name: 'Core Production',
+      accountId: '024314596708',
+      roleName: 'OrganizationAccountAccessRole',
+      partition: 'aws',
+      environment: 'production',
+      favorite: false,
+      tags: [],
+      id: crypto.randomUUID(),
+      listId: LIST_ID,
+      colorId: 'rose',
+      createdAt: ISO,
+      updatedAt: ISO,
+      ...overrides,
+    };
+    // An Identity Center profile carries no partition, and the schema is strict
+    // about unknown keys, so drop anything an override cleared.
+    return Object.fromEntries(Object.entries(merged).filter(([, value]) => value !== undefined));
+  }
+
+  /** A stored version 3 state, which is what an installed 0.1.3 holds. */
+  async function seedVersion3(profiles: Record<string, unknown>[]): Promise<void> {
+    const current = createDefaultState();
+    const legacySettings: Record<string, unknown> = { ...current.settings };
+    delete legacySettings.accessMode;
+    await browser.storage.local.set({
+      [STORAGE_KEY]: { ...current, version: 3, profiles, settings: legacySettings },
+    });
+  }
+
+  it('keeps an IAM user in IAM mode', async () => {
+    await seedVersion3([storedProfile({})]);
+    const migrated = await ensureAppState();
+    expect(migrated.version).toBe(4);
+    expect(migrated.settings.accessMode).toBe('iam');
+    expect(migrated.profiles).toHaveLength(1);
+  });
+
+  it('puts an Identity Center-only installation into Identity Center mode', async () => {
+    await seedVersion3([
+      storedProfile({
+        type: 'sso',
+        name: 'Platform',
+        roleName: 'PlatformAccess',
+        portalUrl: 'https://example.awsapps.com/start',
+        partition: undefined,
+      }),
+    ]);
+    const migrated = await ensureAppState();
+    expect(migrated.settings.accessMode).toBe('sso');
+  });
+
+  it('prefers IAM when both kinds of profile are stored', async () => {
+    await seedVersion3([
+      storedProfile({}),
+      storedProfile({
+        type: 'sso',
+        name: 'Platform',
+        accountId: '891377166946',
+        roleName: 'PlatformAccess',
+        portalUrl: 'https://example.awsapps.com/start',
+        partition: undefined,
+      }),
+    ]);
+    expect((await ensureAppState()).settings.accessMode).toBe('iam');
+  });
+
+  it('still asks a user who has no profiles yet', async () => {
+    await seedVersion3([]);
+    expect((await ensureAppState()).settings.accessMode).toBe('unset');
   });
 });

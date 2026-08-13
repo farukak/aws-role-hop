@@ -1,5 +1,5 @@
 /** @vitest-environment jsdom */
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { browser } from 'wxt/browser';
@@ -20,7 +20,7 @@ function setup(overrides: Partial<AppState['settings']> = {}) {
 }
 
 function themeOptions(): HTMLElement[] {
-  return screen.getAllByRole('radio').slice(0, 3);
+  return within(screen.getByRole('radiogroup', { name: 'Theme' })).getAllByRole('radio');
 }
 
 function backupFile(content: string, name = 'backup.json'): File {
@@ -293,5 +293,31 @@ describe('PreferencesView — about and credits', () => {
     expect(link.getAttribute('rel')).toContain('noopener');
     expect(link.getAttribute('rel')).toContain('noreferrer');
     expect(document.querySelector('a[href*="linkedin"]')).toBeNull();
+  });
+});
+
+describe('PreferencesView — access mode', () => {
+  it('exposes the group and shows nothing selected before the first choice', () => {
+    setup({ accessMode: 'unset' });
+    const group = screen.getByRole('radiogroup', { name: 'Access mode' });
+    const states = within(group)
+      .getAllByRole('radio')
+      .map((option) => option.getAttribute('aria-checked'));
+    expect(states).toEqual(['false', 'false']);
+  });
+
+  it('persists Identity Center as the default access mode', async () => {
+    const { user } = setup({ accessMode: 'iam' });
+
+    await user.click(screen.getByRole('radio', { name: /IAM Identity Center/ }));
+
+    await waitFor(async () => {
+      expect((await loadAppState()).settings.accessMode).toBe('sso');
+    });
+  });
+
+  it('discloses that Identity Center needs portal access', () => {
+    setup({ accessMode: 'iam' });
+    expect(screen.getByText('Needs access to your AWS access portal')).toBeDefined();
   });
 });

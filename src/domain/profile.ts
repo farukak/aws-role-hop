@@ -181,7 +181,15 @@ const ssoProfileSchema = z.extend(ssoProfileDraftSchema, persistedShape);
 
 export const profileSchema = z.discriminatedUnion('type', [roleProfileSchema, ssoProfileSchema]);
 
+/**
+ * Which AWS access path the interface is set up for. `unset` means the choice has
+ * not been made yet, which is what triggers the first-run question.
+ */
+export const ACCESS_MODES = ['unset', 'iam', 'sso'] as const;
+export type AccessMode = (typeof ACCESS_MODES)[number];
+
 export const settingsSchema = z.strictObject({
+  accessMode: z.enum(ACCESS_MODES),
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['system', 'en', 'tr']),
   openBehavior: z.enum(['current', 'new']),
@@ -208,7 +216,7 @@ export const profileListSchema = z.strictObject({
 
 export const appStateSchema = z
   .strictObject({
-    version: z.literal(3),
+    version: z.literal(4),
     profiles: z.array(profileSchema).check(z.maxLength(PROFILE_LIMIT)),
     profileLists: z
       .array(profileListSchema)
@@ -264,12 +272,13 @@ export type AppState = z.infer<typeof appStateSchema>;
 
 export function createDefaultState(): AppState {
   return {
-    version: 3,
+    version: 4,
     profiles: [],
     profileLists: [{ id: DEFAULT_PROFILE_LIST_ID, name: 'Default' }],
     activeProfileListId: DEFAULT_PROFILE_LIST_ID,
     defaultProfileListId: DEFAULT_PROFILE_LIST_ID,
     settings: {
+      accessMode: 'unset',
       theme: 'system',
       language: 'system',
       openBehavior: 'current',

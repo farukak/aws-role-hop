@@ -1,6 +1,7 @@
 import { browser } from 'wxt/browser';
 import { chooseProfileColorId } from '../domain/colors';
 import {
+  type AccessMode,
   DEFAULT_PROFILE_LIST_ID,
   PROFILE_COLOR_IDS,
   PROFILE_LIMIT,
@@ -44,19 +45,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function migrateStoredValue(value: unknown): unknown {
-  if (!isRecord(value)) return value;
+/**
+ * Picks the access mode an existing installation was already working in, so an
+ * upgrade never interrupts someone who has profiles. An empty store is left
+ * `unset` so the first-run question is still asked.
+ */
+function deriveAccessMode(profiles: unknown): AccessMode {
+  const stored = Array.isArray(profiles) ? profiles.filter(isRecord) : [];
+  if (stored.length === 0) return 'unset';
+  const hasRole = stored.some((profile) => profile.type === 'role');
+  const hasIdentityCenter = stored.some((profile) => profile.type === 'sso');
+  return hasIdentityCenter && !hasRole ? 'sso' : 'iam';
+}
 
-  let migrated = value;
-  if (migrated.version === 1 && isRecord(migrated.settings)) {
-    migrated = {
-      ...migrated,
-      version: 2,
-      settings: { ...migrated.settings, language: 'system' },
-    };
-  }
-
-  if (migrated.version !== 2) return migrated;
+function migrateToProfileLists(migrated: Record<string, unknown>): Record<string, unknown> {
   const legacyProfiles: unknown = migrated.profiles;
   const profiles = Array.isArray(legacyProfiles)
     ? legacyProfiles.map((profile: unknown, index) =>
@@ -78,6 +80,32 @@ function migrateStoredValue(value: unknown): unknown {
     activeProfileListId: DEFAULT_PROFILE_LIST_ID,
     defaultProfileListId: DEFAULT_PROFILE_LIST_ID,
   };
+}
+
+/** Each step is applied in order so any stored version reaches the current one. */
+function migrateStoredValue(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+
+  let migrated: Record<string, unknown> = value;
+  if (migrated.version === 1 && isRecord(migrated.settings)) {
+    migrated = {
+      ...migrated,
+      version: 2,
+      settings: { ...migrated.settings, language: 'system' },
+    };
+  }
+
+  if (migrated.version === 2) migrated = migrateToProfileLists(migrated);
+
+  if (migrated.version === 3 && isRecord(migrated.settings)) {
+    migrated = {
+      ...migrated,
+      version: 4,
+      settings: { ...migrated.settings, accessMode: deriveAccessMode(migrated.profiles) },
+    };
+  }
+
+  return migrated;
 }
 
 async function persistAppState(state: AppState): Promise<void> {

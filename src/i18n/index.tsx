@@ -49,6 +49,13 @@ const TURKISH_MESSAGES = {
   'Loading settings': 'Ayarlar yükleniyor',
   'Your experience': 'Deneyimin',
   'Control appearance, navigation, and local data.': 'Görünümü, gezinmeyi ve yerel verileri yönet.',
+  'Access mode': 'Erişim modu',
+  'Choose which AWS access path AWS Role Hop is set up for.':
+    'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
+  'IAM roles': 'IAM rolleri',
+  'Switch inside the AWS Console': 'AWS Console içinde geçiş yap',
+  'IAM Identity Center': 'IAM Identity Center',
+  'Needs access to your AWS access portal': 'AWS erişim portalına erişim gerektirir',
   Appearance: 'Görünüm',
   'Use your browser preference or choose a fixed theme.':
     'Tarayıcı tercihini kullan veya sabit bir tema seç.',

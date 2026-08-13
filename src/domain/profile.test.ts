@@ -388,9 +388,9 @@ describe('appStateSchema', () => {
     expect(appStateSchema.safeParse(createDefaultState()).success).toBe(true);
   });
 
-  it('pins the schema version to 3', () => {
-    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 2 }).success).toBe(false);
-    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 4 }).success).toBe(false);
+  it('pins the schema version to 4', () => {
+    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 3 }).success).toBe(false);
+    expect(appStateSchema.safeParse({ ...createDefaultState(), version: 5 }).success).toBe(false);
   });
 
   it('rejects dangling profile-list references', () => {
@@ -466,5 +466,29 @@ describe('appStateSchema', () => {
 
   it('defaults to confirming production switches', () => {
     expect(createDefaultState().settings.confirmProduction).toBe(true);
+  });
+});
+
+describe('access mode setting', () => {
+  it('starts unset so the first-run choice is still owed', () => {
+    expect(createDefaultState().settings.accessMode).toBe('unset');
+  });
+
+  it.each(['unset', 'iam', 'sso'] as const)('accepts %s', (accessMode) => {
+    const state = createDefaultState();
+    const parsed = appStateSchema.safeParse({
+      ...state,
+      settings: { ...state.settings, accessMode },
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it.each(['identity-center', '', 'IAM'])('rejects %s', (accessMode) => {
+    const state = createDefaultState();
+    const parsed = appStateSchema.safeParse({
+      ...state,
+      settings: { ...state.settings, accessMode },
+    });
+    expect(parsed.success).toBe(false);
   });
 });
