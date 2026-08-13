@@ -134,6 +134,56 @@ describe('navigateToProfile', () => {
     });
   });
 
+  it('retries a chained multi-session switch from the tab still on its sign-in session', async () => {
+    const consoleUrl = 'https://eu-west-1.console.aws.amazon.com/console/home';
+    const destination = 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1';
+    const queryTabs = ((query: Record<string, unknown>) =>
+      Promise.resolve(
+        query.active === true
+          ? [{ id: 42, url: consoleUrl, status: 'complete' }]
+          : [
+              { id: 42, url: consoleUrl, status: 'complete' },
+              { id: 7, url: 'https://example.com', status: 'complete' },
+              { id: 9, url: consoleUrl, status: 'complete' },
+            ],
+      )) as never;
+    const answer = ((tabId: number, message: unknown) =>
+      Promise.resolve(
+        message === ROLE_SWITCH_READY_MESSAGE_TYPE
+          ? { ok: true, prismModeEnabled: true }
+          : tabId === 42
+            ? { ok: false, code: 'chained', error: 'chained' }
+            : { ok: true, destination },
+      )) as never;
+
+    vi.spyOn(browser.tabs, 'query').mockImplementation(queryTabs);
+    const send = vi.spyOn(browser.tabs, 'sendMessage').mockImplementation(answer);
+    const create = vi.spyOn(browser.tabs, 'create').mockResolvedValue({} as never);
+
+    await navigateToProfile(profile(), 'new');
+
+    // The unrelated tab must never be probed, and the base-session tab wins.
+    expect(send.mock.calls.map(([tabId]) => tabId)).not.toContain(7);
+    expect(create).toHaveBeenCalledWith({ url: destination });
+  });
+
+  it('reports the chaining cause when no other Console session can authorise it', async () => {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      { id: 42, url: 'https://eu-west-1.console.aws.amazon.com/console/home', status: 'complete' },
+    ] as never);
+    const alwaysChained = ((_tabId: number, message: unknown) =>
+      Promise.resolve(
+        message === ROLE_SWITCH_READY_MESSAGE_TYPE
+          ? { ok: true, prismModeEnabled: true }
+          : { ok: false, code: 'chained', error: 'Already assumed a role.' },
+      )) as never;
+    vi.spyOn(browser.tabs, 'sendMessage').mockImplementation(alwaysChained);
+    const create = vi.spyOn(browser.tabs, 'create');
+
+    await expect(navigateToProfile(profile(), 'new')).rejects.toThrow('Already assumed a role.');
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('refuses a multi-session destination that is not an AWS Console URL', async () => {
     vi.spyOn(browser.tabs, 'query').mockResolvedValue([
       { id: 42, url: 'https://eu-west-1.console.aws.amazon.com/console/home', status: 'complete' },
