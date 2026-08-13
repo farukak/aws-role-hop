@@ -359,3 +359,153 @@ describe('ImportView — destination and input limits', () => {
     expect(notify).not.toHaveBeenCalled();
   });
 });
+
+describe('ImportView — duplicate warnings', () => {
+  const LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const ISO = '2026-01-01T00:00:00.000Z';
+
+  function stateWith(name: string, accountId: string): AppState {
+    const base = createDefaultState();
+    return {
+      ...base,
+      profiles: [
+        {
+          type: 'role',
+          name,
+          accountId,
+          roleName: 'AdminRole',
+          partition: 'aws',
+          environment: 'production',
+          favorite: false,
+          tags: [],
+          id: crypto.randomUUID(),
+          listId: LIST_ID,
+          colorId: 'rose',
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ],
+    };
+  }
+
+  it('warns before importing when a name is already used by another account', async () => {
+    const { user } = setup(stateWith('production-admin', '999999999999'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() => expect(screen.getByText('Duplicates found')).toBeDefined());
+    expect(
+      screen.getByText('1 profile reuses a name already in this list: production-admin'),
+    ).toBeDefined();
+    // A reused name is a warning, not a blocker.
+    expect(screen.getByRole('button', { name: 'Import 1 profile' })).toHaveProperty(
+      'disabled',
+      false,
+    );
+  });
+
+  it('warns before importing that an existing target will be skipped', async () => {
+    const { user } = setup(stateWith('Existing admin', '111111111111'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('1 profile already exists in this list and will be skipped.'),
+      ).toBeDefined(),
+    );
+  });
+
+  it('stays silent about duplicates when the paste is clean', async () => {
+    const { user } = setup(stateWith('Existing admin', '999999999999'));
+    paste(user, `[profile production-admin]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole`);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Import details' })).toBeDefined(),
+    );
+    expect(screen.queryByText('Duplicates found')).toBeNull();
+  });
+});
+
+describe('ImportView — editing an existing list', () => {
+  const DEFAULT_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SECOND_LIST_ID = '00000000-0000-4000-8000-000000000002';
+  const ISO = '2026-01-01T00:00:00.000Z';
+
+  function stateWithLists(): AppState {
+    const base = createDefaultState();
+    return {
+      ...base,
+      profileLists: [...base.profileLists, { id: SECOND_LIST_ID, name: 'Platform' }],
+      profiles: [
+        {
+          type: 'role',
+          name: 'Core Production',
+          accountId: '024314596708',
+          roleName: 'OrganizationAccountAccessRole',
+          partition: 'aws',
+          environment: 'production',
+          favorite: false,
+          tags: ['core'],
+          region: 'eu-west-1',
+          id: crypto.randomUUID(),
+          listId: SECOND_LIST_ID,
+          colorId: 'rose',
+          createdAt: ISO,
+          updatedAt: ISO,
+        },
+      ],
+    };
+  }
+
+  function editor(): HTMLTextAreaElement {
+    return screen.getByLabelText('AWS configuration');
+  }
+
+  it('fills the editor when a list holding profiles is selected', async () => {
+    setup(stateWithLists());
+
+    fireEvent.change(screen.getByLabelText('Import into profile list'), {
+      target: { value: SECOND_LIST_ID },
+    });
+
+    await waitFor(() => expect(editor().value).toContain('[profile Core Production]'));
+    expect(editor().value).toContain('aws_account_id = 024314596708');
+    expect(editor().value).toContain('region = eu-west-1');
+    expect(editor().value).toContain('tags = core');
+  });
+
+  it('keeps text the user already typed when the destination changes', async () => {
+    const { user } = setup(stateWithLists());
+    paste(user, '[profile typed by hand]\nrole_arn = arn:aws:iam::111111111111:role/AdminRole');
+
+    fireEvent.change(screen.getByLabelText('Import into profile list'), {
+      target: { value: SECOND_LIST_ID },
+    });
+
+    await waitFor(() => expect(screen.getByText('typed by hand')).toBeDefined());
+    expect(editor().value).toContain('[profile typed by hand]');
+    expect(editor().value).not.toContain('Core Production');
+  });
+
+  it('loads the list on demand and reparses it into importable profiles', async () => {
+    const state = stateWithLists();
+    const { user } = setup({
+      ...state,
+      profiles: state.profiles.map((profile) => ({ ...profile, listId: DEFAULT_LIST_ID })),
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Load list into editor' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Import details' })).toBeDefined(),
+    );
+    // Everything it just wrote already exists, so importing would skip it.
+    expect(
+      screen.getByText('1 profile already exists in this list and will be skipped.'),
+    ).toBeDefined();
+  });
+
+  it('offers no loader for an empty destination list', () => {
+    setup(createDefaultState());
+    expect(screen.queryByRole('button', { name: 'Load list into editor' })).toBeNull();
+  });
+});

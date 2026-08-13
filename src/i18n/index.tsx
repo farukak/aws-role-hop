@@ -290,10 +290,22 @@ const TURKISH_MESSAGES = {
   'Could not open the imported profile list.': 'İçe aktarılan profil listesi açılamadı.',
   'Could not open the selected profile list.': 'Seçili profil listesi açılamadı.',
   'Manage selected list': 'Seçili listeyi yönet',
+  'Load list into editor': 'Listeyi editöre yükle',
   'Existing profiles are managed in Profiles; raw import text is not stored.':
     'Mevcut profiller Profiller ekranından yönetilir; ham içe aktarma metni saklanmaz.',
   '{added} profiles imported.': '{added} profil içe aktarıldı.',
   '{count} duplicate profiles skipped.': '{count} yinelenen profil atlandı.',
+  'Duplicates found': 'Yinelenenler bulundu',
+  '1 profile already exists in this list and will be skipped.':
+    '1 profil bu listede zaten var ve atlanacak.',
+  '{count} profiles already exist in this list and will be skipped.':
+    '{count} profil bu listede zaten var ve atlanacak.',
+  '1 profile reuses a name already in this list: {names}':
+    'Bu listede zaten kullanılan bir adı yeniden kullanan 1 profil var: {names}',
+  '{count} profiles reuse a name already in this list: {names}':
+    '{count} profil bu listede zaten kullanılan bir adı yeniden kullanıyor: {names}',
+  'Add at least one valid profile before importing.':
+    'İçe aktarmadan önce en az bir geçerli profil ekle.',
   'Could not open settings.': 'Ayarlar açılamadı.',
   "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.":
     "AWS Role Hop'u kimliği doğrulanmış bir AWS Console sekmesinden açın. AWS Role Hop, AWS'nin yerel rol değiştirme isteğini doğrudan gönderir; oturumu ve erişimi yine AWS doğrular.",
@@ -324,6 +336,14 @@ const TURKISH_MESSAGES = {
   'Back to preferences': 'Tercihlere dön',
   'View full changelog on GitHub': 'Tüm değişiklik günlüğünü GitHub’da görüntüle',
   'Built by Faruk AK on GitHub': 'GitHub’da Faruk AK tarafından geliştirildi',
+  'Switch roles in AWS multi-session windows without losing the session you signed in with.':
+    'AWS multi-session pencerelerinde, giriş yaptığın oturumu kaybetmeden rol değiştir.',
+  'See which profiles already exist or reuse a name before an import runs.':
+    'İçe aktarma başlamadan önce hangi profillerin zaten var olduğunu veya bir adı yeniden kullandığını gör.',
+  'Load a saved profile list back into the import editor to review or extend it.':
+    'Kayıtlı bir profil listesini incelemek veya genişletmek için içe aktarma editörüne geri yükle.',
+  'Read a clear explanation when AWS refuses a role switch.':
+    'AWS bir rol geçişini reddettiğinde net bir açıklama oku.',
   'Choose and persist one of eight pastel colors when adding or editing a profile.':
     'Profil eklerken veya düzenlerken sekiz pastel renkten birini seç ve kalıcı olarak sakla.',
   'Return a profile to automatic color assignment from the accessible color picker.':

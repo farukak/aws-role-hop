@@ -6,6 +6,26 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-13
+
+### Added
+
+- Duplicate warnings before an import runs, covering both profiles whose sign-in target already exists and profiles that reuse a name already in the destination list.
+- A **Load list into editor** action that rebuilds an editable AWS config from a stored profile list. Raw import text is still never stored; the text is generated from the saved profiles.
+
+### Changed
+
+- A multi-session switch now opens its destination in a new tab and leaves the session it was made from untouched, so that session can still authorize later switches.
+
+### Fixed
+
+- AWS multi-session switches that AWS refused reported only a raw HTTP status. Failures are now classified and explained, including the role-chaining case where the session had already assumed a role.
+- A multi-session switch attempted from a session that already assumed a role now retries from a Console tab still on the signed-in session instead of failing outright.
+- The multi-session sign-in host is resolved from the separately published Console endpoint and the infrastructure region when the session metadata omits it, instead of falling back to a host that cannot authorize the switch.
+- An AWS error code returned alongside a successful HTTP status is now honored instead of being reported as a missing destination.
+- Chrome no longer records a cross-world resource warning for the generated extension pages.
+- Importing with no valid profiles reported nothing; it now explains why.
+
 ## [0.1.2] - 2026-08-09
 
 ### Added
@@ -82,7 +102,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - All four modal dialogs expose an accessible name and description, the popup has a top-level heading, and both the popup and the options list announce how many profiles match the current search.
 - Removed a keyboard shortcut hint in the popup search field that no handler implemented and that showed a macOS-only key on every platform.
 
-[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/farukak/aws-role-hop/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/farukak/aws-role-hop/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/farukak/aws-role-hop/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/farukak/aws-role-hop/releases/tag/v0.1.0
