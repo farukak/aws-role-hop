@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
 import { AccessModeChooser } from './AccessModeChooser';
-import type { AccessModeChoice } from '../../components/AccessModeMark';
+import { AccessModeMark, type AccessModeChoice } from '../../components/AccessModeMark';
+import { ChoiceGroup } from '../../components/ChoiceGroup';
 import { Brand } from '../../components/Brand';
 import {
   EnvironmentBadge,
@@ -59,10 +60,20 @@ export function PopupApp() {
 
   useTheme(state?.settings.theme);
 
-  const listProfiles = useMemo(
+  const accessMode = state?.settings.accessMode ?? 'unset';
+  const activeListProfiles = useMemo(
     () => state?.profiles.filter(({ listId }) => listId === state.activeProfileListId) ?? [],
     [state],
   );
+  const listProfiles = useMemo(
+    () =>
+      activeListProfiles.filter((profile) =>
+        accessMode === 'sso' ? profile.type === 'sso' : profile.type === 'role',
+      ),
+    [activeListProfiles, accessMode],
+  );
+  /** What the active list holds for the other access path, so nothing disappears silently. */
+  const otherModeCount = activeListProfiles.length - listProfiles.length;
   const profiles = useMemo(
     () => searchProfiles(sortProfiles(listProfiles), query),
     [listProfiles, query],
@@ -104,6 +115,8 @@ export function PopupApp() {
     setPendingMode(mode);
     try {
       await updateSettings({ accessMode: mode });
+      setQuery('');
+      setSelectedIndex(0);
     } catch (modeError: unknown) {
       setActionError(
         modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
@@ -227,6 +240,21 @@ export function PopupApp() {
         </button>
       </header>
 
+      <ChoiceGroup className="popup-mode-switch" label={t('Access mode')}>
+        <ModeOption
+          mode="iam"
+          label={t('IAM')}
+          selected={accessMode === 'iam'}
+          onSelect={() => void chooseAccessMode('iam')}
+        />
+        <ModeOption
+          mode="sso"
+          label={t('Identity Center')}
+          selected={accessMode === 'sso'}
+          onSelect={() => void chooseAccessMode('sso')}
+        />
+      </ChoiceGroup>
+
       <label className="popup-list-picker">
         <Layers3 size={15} strokeWidth={1.8} aria-hidden="true" />
         <span className="visually-hidden">{t('Profile list')}</span>
@@ -314,6 +342,22 @@ export function PopupApp() {
       {actionError && (
         <div className="popup-alert" role="alert">
           {actionError}
+        </div>
+      )}
+
+      {otherModeCount > 0 && (
+        <div className="popup-mode-hint">
+          <span>
+            {accessMode === 'sso'
+              ? t('This list also has IAM profiles.')
+              : t('This list also has Identity Center profiles.')}
+          </span>
+          <button
+            type="button"
+            onClick={() => void chooseAccessMode(accessMode === 'sso' ? 'iam' : 'sso')}
+          >
+            {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to Identity Center')}
+          </button>
         </div>
       )}
 
@@ -436,6 +480,30 @@ export function PopupApp() {
         />
       )}
     </main>
+  );
+}
+
+interface ModeOptionProps {
+  mode: AccessModeChoice;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+function ModeOption({ mode, label, selected, onSelect }: ModeOptionProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      tabIndex={selected ? 0 : -1}
+      className="popup-mode-option"
+      data-selected={selected || undefined}
+      onClick={onSelect}
+    >
+      <AccessModeMark mode={mode} size={16} />
+      {label}
+    </button>
   );
 }
 

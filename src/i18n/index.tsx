@@ -60,6 +60,11 @@ const TURKISH_MESSAGES = {
   'AWS Role Hop asks for portal access only when you choose Identity Center.':
     'AWS Role Hop portal erişimini yalnızca Identity Center’ı seçtiğinde ister.',
   'Could not save the access mode.': 'Erişim modu kaydedilemedi.',
+  IAM: 'IAM',
+  'This list also has Identity Center profiles.': 'Bu listede Identity Center profilleri de var.',
+  'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
+  'Switch to Identity Center': 'Identity Center’a geç',
+  'Switch to IAM': 'IAM’e geç',
   'Choose which AWS access path AWS Role Hop is set up for.':
     'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
   'IAM roles': 'IAM rolleri',

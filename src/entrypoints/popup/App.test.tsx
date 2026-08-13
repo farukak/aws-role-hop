@@ -434,3 +434,78 @@ describe('PopupApp — first-run access mode', () => {
     await waitFor(() => expect(screen.getByRole('listbox')).toBeDefined());
   });
 });
+
+describe('PopupApp — access mode separation', () => {
+  function ssoDraft(): ReturnType<typeof profileDraftSchema.parse> {
+    return profileDraftSchema.parse({
+      type: 'sso',
+      name: 'Platform access',
+      accountId: '222222222222',
+      roleName: 'PlatformAccess',
+      portalUrl: 'https://example.awsapps.com/start',
+      environment: 'other',
+      favorite: false,
+      tags: [],
+    });
+  }
+
+  async function seedBothKinds(accessMode: 'iam' | 'sso'): Promise<void> {
+    const base = createDefaultState();
+    await saveAppState({
+      ...base,
+      settings: { ...base.settings, accessMode },
+      profiles: [createProfile(draft()), createProfile(ssoDraft())],
+    });
+  }
+
+  it('shows only IAM profiles in IAM mode', async () => {
+    await seedBothKinds('iam');
+    render(<PopupApp />);
+
+    await waitFor(() => expect(screen.getByText('Production admin')).toBeDefined());
+    expect(screen.queryByText('Platform access')).toBeNull();
+  });
+
+  it('shows only Identity Center profiles in Identity Center mode', async () => {
+    await seedBothKinds('sso');
+    render(<PopupApp />);
+
+    await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
+    expect(screen.queryByText('Production admin')).toBeNull();
+  });
+
+  it('marks the active mode in the switcher', async () => {
+    await seedBothKinds('sso');
+    render(<PopupApp />);
+
+    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access mode' }));
+    const states = within(group)
+      .getAllByRole('radio')
+      .map((option) => option.getAttribute('aria-checked'));
+    expect(states).toEqual(['false', 'true']);
+  });
+
+  it('says the list holds profiles for the other mode and switches to them', async () => {
+    await seedBothKinds('iam');
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await waitFor(() =>
+      expect(screen.getByText('This list also has Identity Center profiles.')).toBeDefined(),
+    );
+    await user.click(screen.getByRole('button', { name: 'Switch to Identity Center' }));
+
+    await waitFor(async () => {
+      expect((await loadAppState()).settings.accessMode).toBe('sso');
+    });
+    await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
+  });
+
+  it('keeps quiet when the list only holds the active mode', async () => {
+    await seed(draft());
+    render(<PopupApp />);
+
+    await waitFor(() => expect(screen.getByText('Production admin')).toBeDefined());
+    expect(screen.queryByText('This list also has Identity Center profiles.')).toBeNull();
+  });
+});
