@@ -214,4 +214,13 @@ describe('classifyAwsSwitchStatus with an AWS error code', () => {
     document.body.innerHTML = `<span id="awsc-role-display-name-account">${account}</span><span id="awsc-role-display-name-user">${user}</span>`;
     expect(hasAssumedRole(document)).toBe(expected);
   });
+
+  it('prefers the nav service when the Console renders no display-name nodes', () => {
+    document.body.innerHTML = '';
+    expect(
+      hasAssumedRole(document, { roleDisplayNameUser: 'OrganizationAccountAccessRole/faruk' }),
+    ).toBe(true);
+    expect(hasAssumedRole(document, { roleDisplayNameAccount: '   ' })).toBe(false);
+    expect(hasAssumedRole(document, null)).toBe(false);
+  });
 });

@@ -18,6 +18,7 @@ const MULTI_SESSION_TIMEOUT_MS = 14_000;
 
 type AwsGlobals = typeof globalThis & {
   AWSC?: { Auth?: { getMbtc?: () => unknown } };
+  ConsoleNavService?: { AccountInfo?: unknown };
 };
 
 export default defineUnlistedScript(() => {
@@ -84,7 +85,13 @@ export default defineUnlistedScript(() => {
             if (!response.ok || awsErrorCode) {
               const failure = classifyAwsSwitchStatus(response.status, awsErrorCode);
               throw new AwsSwitchFailure(
-                failure === 'unauthorized' && hasAssumedRole(document) ? 'chained' : failure,
+                failure === 'unauthorized' &&
+                  hasAssumedRole(
+                    document,
+                    (globalThis as AwsGlobals).ConsoleNavService?.AccountInfo,
+                  )
+                  ? 'chained'
+                  : failure,
                 `AWS switch-role request failed (${response.status}).`,
               );
             }

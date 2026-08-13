@@ -120,12 +120,13 @@ describe('AWS Console page bridge', () => {
       sessionDifferentiator: '024314596708-cuyfxlmx',
       signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
     });
-    document.body.insertAdjacentHTML(
-      'beforeend',
-      '<span id="awsc-role-display-name-account">0243-1459-6708</span>',
-    );
+    Object.defineProperty(globalThis, 'ConsoleNavService', {
+      configurable: true,
+      value: { AccountInfo: { roleDisplayNameAccount: '0243-1459-6708' } },
+    });
 
     await expect(dispatch(bridge)).resolves.toMatchObject({ ok: false, code: 'chained' });
+    Reflect.deleteProperty(globalThis, 'ConsoleNavService');
   });
 
   it('honours an AWS error code returned with a successful status', async () => {

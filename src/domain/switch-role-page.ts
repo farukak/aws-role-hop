@@ -146,8 +146,20 @@ export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSes
  * The Console only publishes a role display name once a role has been assumed.
  * A multi-session switch made from such a session is a role-to-role chain, which
  * AWS refuses unless the target role trusts the assumed role.
+ *
+ * Current Console pages expose this through their nav service and only older
+ * pages still render the matching DOM nodes, so both are consulted.
  */
-export function hasAssumedRole(document: Document): boolean {
+export function hasAssumedRole(document: Document, accountInfo?: unknown): boolean {
+  const info =
+    accountInfo && typeof accountInfo === 'object'
+      ? (accountInfo as Record<string, unknown>)
+      : undefined;
+  const publishedByService = [info?.roleDisplayNameAccount, info?.roleDisplayNameUser].some(
+    (value) => typeof value === 'string' && value.trim() !== '',
+  );
+  if (publishedByService) return true;
+
   const account = document.getElementById('awsc-role-display-name-account')?.textContent?.trim();
   const user = document.getElementById('awsc-role-display-name-user')?.textContent?.trim();
   return Boolean(account || user);
