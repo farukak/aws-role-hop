@@ -110,6 +110,46 @@ describe('AWS Console page bridge', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it('names role chaining when the session had already assumed a role', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.resolve(new Response('', { status: 401 }))),
+    );
+    const bridge = setupBridge({
+      prismModeEnabled: true,
+      sessionDifferentiator: '024314596708-cuyfxlmx',
+      signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
+    });
+    document.body.insertAdjacentHTML(
+      'beforeend',
+      '<span id="awsc-role-display-name-account">0243-1459-6708</span>',
+    );
+
+    await expect(dispatch(bridge)).resolves.toMatchObject({ ok: false, code: 'chained' });
+  });
+
+  it('honours an AWS error code returned with a successful status', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          Response.json({
+            destination: null,
+            errorCode: 'UNAUTHORIZED',
+            errorMessage: 'Unauthorized - user not authorized to switch to that role',
+          }),
+        ),
+      ),
+    );
+    const bridge = setupBridge({
+      prismModeEnabled: true,
+      sessionDifferentiator: 'session-1',
+      signInEndpoint: 'signin.aws.amazon.com',
+    });
+
+    await expect(dispatch(bridge)).resolves.toMatchObject({ ok: false, code: 'unauthorized' });
+  });
+
   it('aborts a multi-session request before the content-script deadline', async () => {
     vi.useFakeTimers();
     const bridge = setupBridge({

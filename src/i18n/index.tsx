@@ -209,6 +209,8 @@ const TURKISH_MESSAGES = {
   'Could not save the profile.': 'Profil kaydedilemedi.',
   'AWS did not authorize this switch. Check that this session may assume the role, then sign in again if needed.':
     'AWS bu geçişi yetkilendirmedi. Bu oturumun role geçme yetkisi olduğunu doğrula, gerekirse yeniden giriş yap.',
+  'This AWS Console session already assumed a role. Multi-session switches have to start from the session you signed in with.':
+    'Bu AWS Console oturumunda zaten bir rol üstlenildi. Multi-session geçişleri, giriş yaptığın oturumdan başlamak zorunda.',
   'This AWS Console session is no longer available. Reload the tab and try again.':
     'Bu AWS Console oturumu artık kullanılamıyor. Sekmeyi yenileyip tekrar dene.',
   'AWS is limiting switch requests right now. Wait a moment and try again.':

@@ -5,6 +5,7 @@ import {
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
   classifyAwsSwitchStatus,
+  hasAssumedRole,
   isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
   resolveAwsCsrfValue,
@@ -197,5 +198,20 @@ describe('readAwsConsoleSessionMetadata sign-in endpoint fallbacks', () => {
     document.body.innerHTML = '';
 
     expect(readAwsConsoleSessionMetadata(document)).toEqual({ prismModeEnabled: true });
+  });
+});
+
+describe('classifyAwsSwitchStatus with an AWS error code', () => {
+  it('treats an UNAUTHORIZED body as unauthorized even on a 200', () => {
+    expect(classifyAwsSwitchStatus(200, 'UNAUTHORIZED')).toBe('unauthorized');
+  });
+
+  it.each([
+    ['0243-1459-6708', '', true],
+    ['', 'OrganizationAccountAccessRole/user', true],
+    ['', '', false],
+  ] as const)('detects an assumed role from account %s and user %s', (account, user, expected) => {
+    document.body.innerHTML = `<span id="awsc-role-display-name-account">${account}</span><span id="awsc-role-display-name-user">${user}</span>`;
+    expect(hasAssumedRole(document)).toBe(expected);
   });
 });

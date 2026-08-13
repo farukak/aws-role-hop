@@ -43,7 +43,15 @@ export class AwsSwitchFailure extends Error {
   }
 }
 
-export function classifyAwsSwitchStatus(status: number): AwsSwitchFailureCode {
+/**
+ * A multi-session switch can fail with a 200 that carries an errorCode, so the
+ * body is as authoritative as the status.
+ */
+export function classifyAwsSwitchStatus(
+  status: number,
+  awsErrorCode?: string,
+): AwsSwitchFailureCode {
+  if (awsErrorCode === 'UNAUTHORIZED') return 'unauthorized';
   if (status === 401 || status === 403) return 'unauthorized';
   if (status === 404 || status === 410) return 'sessionMissing';
   if (status === 429) return 'throttled';
@@ -132,6 +140,17 @@ export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSes
       : {}),
     ...(signInEndpoint ? { signInEndpoint } : {}),
   };
+}
+
+/**
+ * The Console only publishes a role display name once a role has been assumed.
+ * A multi-session switch made from such a session is a role-to-role chain, which
+ * AWS refuses unless the target role trusts the assumed role.
+ */
+export function hasAssumedRole(document: Document): boolean {
+  const account = document.getElementById('awsc-role-display-name-account')?.textContent?.trim();
+  const user = document.getElementById('awsc-role-display-name-user')?.textContent?.trim();
+  return Boolean(account || user);
 }
 
 export function resolveAwsSignInHost(candidate: string | undefined, partition: Partition): string {

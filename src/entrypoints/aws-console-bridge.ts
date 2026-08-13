@@ -4,6 +4,7 @@ import {
   buildAwsStandardSwitchFields,
   buildAwsSwitchEndpoint,
   classifyAwsSwitchStatus,
+  hasAssumedRole,
   isAllowedAwsConsoleDestination,
   readAwsConsoleSessionMetadata,
   resolveAwsCsrfValue,
@@ -53,7 +54,7 @@ export default defineUnlistedScript(() => {
 
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), MULTI_SESSION_TIMEOUT_MS);
-          let body: { destination?: unknown };
+          let body: { destination?: unknown; errorCode?: unknown };
           try {
             const response = await fetch(endpoint, {
               method: 'POST',
@@ -75,13 +76,18 @@ export default defineUnlistedScript(() => {
               }),
               signal: controller.signal,
             });
-            if (!response.ok) {
+            body = (await response.json().catch(() => ({}))) as {
+              destination?: unknown;
+              errorCode?: unknown;
+            };
+            const awsErrorCode = typeof body.errorCode === 'string' ? body.errorCode : undefined;
+            if (!response.ok || awsErrorCode) {
+              const failure = classifyAwsSwitchStatus(response.status, awsErrorCode);
               throw new AwsSwitchFailure(
-                classifyAwsSwitchStatus(response.status),
+                failure === 'unauthorized' && hasAssumedRole(document) ? 'chained' : failure,
                 `AWS switch-role request failed (${response.status}).`,
               );
             }
-            body = (await response.json()) as { destination?: unknown };
           } catch (error: unknown) {
             if (controller.signal.aborted) {
               throw new Error(

@@ -21,6 +21,7 @@ export interface RoleSwitchRequest {
  */
 export const AWS_SWITCH_FAILURE_CODES = [
   'unauthorized',
+  'chained',
   'sessionMissing',
   'throttled',
   'unavailable',

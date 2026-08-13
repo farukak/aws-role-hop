@@ -81,7 +81,9 @@ export async function navigateToProfile(
     ) {
       throw new RoleSwitchError('AWS did not return a usable switch destination.');
     }
-    await navigateToUrl(result.destination, openBehavior);
+    // Replacing this tab would destroy the session that authorises further
+    // switches, so a multi-session destination always gets its own tab.
+    await browser.tabs.create({ url: result.destination });
     return;
   }
 

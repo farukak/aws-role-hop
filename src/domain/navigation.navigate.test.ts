@@ -113,6 +113,27 @@ describe('navigateToProfile', () => {
     });
   });
 
+  it('keeps the base session tab even when the preference is the current tab', async () => {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      { id: 42, url: 'https://eu-west-1.console.aws.amazon.com/console/home', status: 'complete' },
+    ] as never);
+    const update = vi.spyOn(browser.tabs, 'update');
+    const create = vi.spyOn(browser.tabs, 'create').mockResolvedValue({} as never);
+    vi.spyOn(browser.tabs, 'sendMessage')
+      .mockResolvedValueOnce({ ok: true, prismModeEnabled: true } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        destination: 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+      } as never);
+
+    await navigateToProfile(profile(), 'current');
+
+    expect(update).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledWith({
+      url: 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+    });
+  });
+
   it('refuses a multi-session destination that is not an AWS Console URL', async () => {
     vi.spyOn(browser.tabs, 'query').mockResolvedValue([
       { id: 42, url: 'https://eu-west-1.console.aws.amazon.com/console/home', status: 'complete' },
