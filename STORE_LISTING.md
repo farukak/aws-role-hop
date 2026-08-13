@@ -165,7 +165,7 @@ IAM switching test with a reviewer-owned AWS test account:
 Required before submission:
 
 - 128×128 store icon: generated as `icons/128.png` in the package.
-- Four current 1280×800 screenshots using only fictional account data are tracked in `docs/assets/`.
+- Five current 1280×800 screenshots using only fictional account data are tracked in `docs/assets/`: `01-profiles.png`, `02-import.png`, `03-preferences.png`, `04-whats-new.png`, and `05-discover.png`. `06-popup.png` shows the popup itself and is used in the README.
 - Small promotional tile: `docs/assets/store-promo-440x280.png` (440×280).
 - Marquee image: `docs/assets/store-marquee-1400x560.png` (1400×560).
 - GitHub social preview: `docs/assets/social-preview.png` (1280×640).

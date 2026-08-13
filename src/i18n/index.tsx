@@ -30,7 +30,6 @@ const TURKISH_MESSAGES = {
   'Stored locally': 'Yerel olarak saklanır',
   'Remove {name} from favorites': '{name} profilini favorilerden çıkar',
   'Favorite {name}': '{name} profilini favorile',
-  'Open production?': 'Production profili açılsın mı?',
   'You are about to open {name} with the {role} role.':
     '{name} profilini {role} rolüyle açmak üzeresin.',
   Cancel: 'İptal',
@@ -66,6 +65,16 @@ const TURKISH_MESSAGES = {
   'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
   'Switch to SSO': 'SSO’ya geç',
   'Switch to IAM': 'IAM’e geç',
+  'Choose between IAM and SSO when you first open AWS Role Hop, and switch access path whenever you want.':
+    'AWS Role Hop’u ilk açtığında IAM ile SSO arasında seç, erişim yolunu istediğin zaman değiştir.',
+  'Let AWS Role Hop read your accounts and permission sets from your AWS access portal instead of typing them.':
+    'Hesaplarını ve izin setlerini elle yazmak yerine AWS Role Hop’un AWS erişim portalından okumasına izin ver.',
+  'Scan the portal straight from the popup while you are on it.':
+    'Portaldayken taramayı doğrudan açılır pencereden yap.',
+  'Keep IAM and SSO profiles apart in their own default lists.':
+    'IAM ve SSO profillerini kendi varsayılan listelerinde ayrı tut.',
+  'Open any profile in a single click, with the production confirmation available when you want it.':
+    'Her profili tek tıkla aç; üretim onayı istediğinde açılabilir durumda kalsın.',
   'Default IAM': 'Varsayılan IAM',
   'Default SSO': 'Varsayılan SSO',
   'Pick an account to open it, or scan the portal again to refresh this list.':
@@ -107,7 +116,6 @@ const TURKISH_MESSAGES = {
     'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
   'IAM roles': 'IAM rolleri',
   'Switch inside the AWS Console': 'AWS Console içinde geçiş yap',
-  'IAM Identity Center': 'IAM Identity Center',
   'Needs access to your AWS access portal': 'AWS erişim portalına erişim gerektirir',
   Appearance: 'Görünüm',
   'Use your browser preference or choose a fixed theme.':
@@ -135,8 +143,6 @@ const TURKISH_MESSAGES = {
   'New tab': 'Yeni sekme',
   'Keep your current page open': 'Geçerli sayfayı açık tut',
   'Confirm production profiles': 'Production profillerini onayla',
-  'Require one extra confirmation before opening a production role.':
-    'Production rolünü açmadan önce ek onay iste.',
   'Hide account IDs': 'Hesap kimliklerini gizle',
   'Show only the final four characters in AWS Role Hop interfaces.':
     'AWS Role Hop arayüzlerinde yalnızca son dört karakteri göster.',
@@ -177,8 +183,6 @@ const TURKISH_MESSAGES = {
   Rename: 'Yeniden adlandır',
   'Make default': 'Varsayılan yap',
   'Create profile list': 'Profil listesi oluştur',
-  'Rename {name}': '{name} listesini yeniden adlandır',
-  'Make {name} the default list': '{name} listesini varsayılan yap',
   'Delete {name} list': '{name} listesini sil',
   'Could not select the profile list.': 'Profil listesi seçilemedi.',
   '{name} is now the default list.': '{name} artık varsayılan liste.',
@@ -196,8 +200,6 @@ const TURKISH_MESSAGES = {
   'List name': 'Liste adı',
   'Create list': 'Liste oluştur',
   'Delete list': 'Listeyi sil',
-  'Keep every AWS account and role one search away.':
-    'Tüm AWS hesaplarını ve rollerini tek arama uzağında tut.',
   'Manage the profiles and lists that appear in the AWS Role Hop popup.':
     'AWS Role Hop popup’ında görünen profilleri ve listeleri yönet.',
   'This list has no profiles yet': 'Bu listede henüz profil yok',
@@ -212,8 +214,6 @@ const TURKISH_MESSAGES = {
   'Search by name, account, role, or tag': 'Ada, hesaba, role veya etikete göre ara',
   '{matches} of {total} match': '{total} profilden {matches} tanesi eşleşiyor',
   'No profiles yet': 'Henüz profil yok',
-  'Add profiles individually or import an existing AWS config. Credentials are never needed.':
-    'Profilleri tek tek ekle veya mevcut AWS yapılandırmasını içe aktar. Kimlik bilgileri gerekmez.',
   'Create profile': 'Profil oluştur',
   'Try a different name, account ID, role, environment, or tag.':
     'Farklı bir ad, hesap kimliği, rol, ortam veya etiket dene.',
@@ -278,7 +278,6 @@ const TURKISH_MESSAGES = {
   'AWS could not complete the switch. Try again in a moment.':
     'AWS geçişi tamamlayamadı. Biraz sonra tekrar dene.',
   'AWS rejected the switch request.': 'AWS geçiş isteğini reddetti.',
-  'Bring your profiles': 'Profillerini getir',
   'Import AWS config': 'AWS yapılandırmasını içe aktar',
   'Add many profiles': 'Birden fazla profil ekle',
   'Paste profile metadata, choose a destination, and import when it is ready.':
@@ -286,17 +285,11 @@ const TURKISH_MESSAGES = {
   'Paste or drop a file': 'Yapıştır veya dosya bırak',
   'Supports AWS CLI profiles, Identity Center sessions, and Organizations JSON.':
     'AWS CLI profillerini, Identity Center oturumlarını ve Organizations JSON çıktısını destekler.',
-  'Review every profile before it reaches local storage.':
-    'Yerel depolamaya ulaşmadan önce her profili incele.',
   'Choose file': 'Dosya seç',
-  Configuration: 'Yapılandırma',
-  'AWS CLI profiles, Identity Center sessions, and Organizations list-accounts output are supported.':
-    'AWS CLI profilleri, Identity Center oturumları ve Organizations list-accounts çıktısı desteklenir.',
   'Clear configuration': 'Yapılandırmayı temizle',
   'AWS configuration': 'AWS yapılandırması',
   'Import into': 'Şuraya içe aktar',
   'Import into profile list': 'İçe aktarılacak profil listesi',
-  'Drop a .config, .ini, or .json file here': 'Bir .config, .ini veya .json dosyasını buraya bırak',
   'Profile list destination': 'Profil listesi hedefi',
   'Existing list': 'Mevcut liste',
   'New profile list name': 'Yeni profil listesi adı',
@@ -305,8 +298,6 @@ const TURKISH_MESSAGES = {
   'Format not recognized': 'Biçim tanınmadı',
   'Import details': 'İçe aktarma ayrıntıları',
   'Enter a name for the new profile list.': 'Yeni profil listesi için bir ad gir.',
-  'Drop a supported file anywhere in this editor':
-    'Desteklenen bir dosyayı bu editörün herhangi bir yerine bırak',
   'Paste AWS config or Organizations JSON here…':
     'AWS yapılandırmasını veya Organizations JSON çıktısını buraya yapıştır…',
   'Show an import example': 'İçe aktarma örneğini göster',
@@ -341,13 +332,11 @@ const TURKISH_MESSAGES = {
     'Yukarıdaki sorunları düzelt veya rol ya da Identity Center alanları içeren bölümler sağla.',
   '1 section not included': '1 bölüm dahil edilmedi',
   '{count} sections not included': '{count} bölüm dahil edilmedi',
-  'Paste or choose an AWS config first.': 'Önce bir AWS yapılandırması yapıştır veya seç.',
   'Config files must be smaller than 1 MB.': 'Yapılandırma dosyaları 1 MB’den küçük olmalıdır.',
   'Pasted configuration must be smaller than 1 MB.':
     'Yapıştırılan yapılandırma 1 MB’den küçük olmalıdır.',
   'The selected file could not be read.': 'Seçilen dosya okunamadı.',
   'Could not import profiles.': 'Profiller içe aktarılamadı.',
-  'Could not open the imported profile list.': 'İçe aktarılan profil listesi açılamadı.',
   'Could not open the selected profile list.': 'Seçili profil listesi açılamadı.',
   'Manage selected list': 'Seçili listeyi yönet',
   'Load list into editor': 'Listeyi editöre yükle',
