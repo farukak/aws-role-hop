@@ -25,7 +25,10 @@ export interface DiscoveredRole {
 
 const portalListSchema = z.object({
   result: z.array(z.unknown()),
+  // The portal has answered with more than one name for the same cursor.
   paginationToken: z.optional(z.nullable(z.string())),
+  nextToken: z.optional(z.nullable(z.string())),
+  next_token: z.optional(z.nullable(z.string())),
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -45,9 +48,10 @@ function normalizeToken(token: string | null | undefined): string | null {
 function readPage(payload: unknown): PortalPage<Record<string, unknown>> {
   const parsed = portalListSchema.safeParse(payload);
   if (!parsed.success) return { items: [], nextToken: null };
+  const { paginationToken, nextToken, next_token: snakeToken } = parsed.data;
   return {
     items: parsed.data.result.filter(isRecord),
-    nextToken: normalizeToken(parsed.data.paginationToken),
+    nextToken: normalizeToken(paginationToken ?? nextToken ?? snakeToken),
   };
 }
 

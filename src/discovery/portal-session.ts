@@ -67,18 +67,29 @@ export async function requestPortalAccess(portalUrl: string): Promise<boolean> {
 /**
  * Runs inside the portal tab, so the request is same-origin and the browser
  * attaches the portal's own session cookie. AWS Role Hop never reads it.
+ *
+ * The shape matches what the portal's own client sends: a plain GET for the first
+ * page, and a form-encoded POST carrying `next_token` for the pages after it.
  */
-async function portalRequest(endpoint: string): Promise<{ status: number; payload: unknown }> {
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      accept: 'application/json',
-      'content-type': 'application/json',
-      'enable-pagination': 'true',
-    },
-    body: '{}',
-  });
+export async function portalRequest(
+  endpoint: string,
+  nextToken: string | null,
+): Promise<{ status: number; payload: unknown }> {
+  const request: RequestInit =
+    nextToken === null
+      ? { method: 'GET', credentials: 'include', headers: { accept: 'application/json' } }
+      : {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            accept: 'application/json',
+            'content-type': 'application/x-www-form-urlencoded',
+            'enable-pagination': 'true',
+          },
+          body: `next_token=${encodeURIComponent(nextToken)}`,
+        };
+
+  const response = await fetch(endpoint, request);
 
   let payload: unknown;
   try {
@@ -114,17 +125,6 @@ async function portalTabId(portalUrl: string): Promise<number> {
   }
   await waitForTab(created.id);
   return created.id;
-}
-
-/**
- * Pagination is carried as a query parameter. The portal reports the token it
- * wants back, so nothing is sent until it asks for a next page.
- */
-function withToken(endpoint: string, token: string | null): string {
-  if (token === null) return endpoint;
-  const url = new URL(endpoint);
-  url.searchParams.set('pagination_token', token);
-  return url.toString();
 }
 
 function readInjectionResult(
@@ -167,16 +167,19 @@ function readInjectionResult(
 }
 
 /** One same-origin call against the portal. The tab-backed one is the real path. */
-export type PortalTransport = (endpoint: string) => Promise<{ status: number; payload: unknown }>;
+export type PortalTransport = (
+  endpoint: string,
+  nextToken: string | null,
+) => Promise<{ status: number; payload: unknown }>;
 
 export async function openPortalTransport(portalUrl: string): Promise<PortalTransport> {
   const tabId = await portalTabId(portalUrl);
-  return async (endpoint: string) => {
+  return async (endpoint: string, nextToken: string | null) => {
     let injected: unknown;
     try {
       injected = await browser.scripting.executeScript({
         target: { tabId },
-        args: [endpoint],
+        args: [endpoint, nextToken],
         func: portalRequest,
       });
     } catch (injectionError: unknown) {
@@ -202,7 +205,7 @@ async function collect<T>(
   let token: string | null = null;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
-    const answer = await transport(withToken(endpoint, token));
+    const answer = await transport(endpoint, token);
     if (answer.status === 401 || answer.status === 403) {
       throw new PortalDiscoveryError(
         'unauthorized',
