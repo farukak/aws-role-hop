@@ -72,7 +72,14 @@ export function isAllowedAwsConsoleDestination(value: string, partition: Partiti
   }
 }
 
-export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSessionMetadata {
+interface ParsedAwsSessionData {
+  prismModeEnabled: boolean;
+  sessionDifferentiator?: string;
+  signInEndpoint?: string;
+  infrastructureRegion?: string;
+}
+
+function parseAwsSessionData(document: Document): ParsedAwsSessionData {
   const content = document
     .querySelector<HTMLMetaElement>('meta[name="awsc-session-data"]')
     ?.getAttribute('content');
@@ -88,10 +95,43 @@ export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSes
       ...(typeof parsed.signInEndpoint === 'string'
         ? { signInEndpoint: parsed.signInEndpoint }
         : {}),
+      ...(typeof parsed.infrastructureRegion === 'string'
+        ? { infrastructureRegion: parsed.infrastructureRegion }
+        : {}),
     };
   } catch {
     return { prismModeEnabled: false };
   }
+}
+
+/**
+ * Some Console pages omit signInEndpoint from the session metadata and publish
+ * it separately. A multi-session switch only exists on that exact host, so an
+ * unresolved endpoint would be sent to the wrong host and rejected.
+ */
+function readSignInEndpointFallback(
+  document: Document,
+  infrastructureRegion: string | undefined,
+): string | undefined {
+  const published = document.getElementById('awsc-signin-endpoint')?.getAttribute('content');
+  if (published) return published;
+  if (infrastructureRegion?.startsWith('us-gov-')) return 'signin.amazonaws-us-gov.com';
+  if (infrastructureRegion?.startsWith('cn-')) return 'signin.amazonaws.cn';
+  return undefined;
+}
+
+export function readAwsConsoleSessionMetadata(document: Document): AwsConsoleSessionMetadata {
+  const parsed = parseAwsSessionData(document);
+  const signInEndpoint =
+    parsed.signInEndpoint ?? readSignInEndpointFallback(document, parsed.infrastructureRegion);
+
+  return {
+    prismModeEnabled: parsed.prismModeEnabled,
+    ...(parsed.sessionDifferentiator
+      ? { sessionDifferentiator: parsed.sessionDifferentiator }
+      : {}),
+    ...(signInEndpoint ? { signInEndpoint } : {}),
+  };
 }
 
 export function resolveAwsSignInHost(candidate: string | undefined, partition: Partition): string {

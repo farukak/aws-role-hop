@@ -207,8 +207,8 @@ const TURKISH_MESSAGES = {
     'Bu profili arama sonuçlarının üst sıralarında tut.',
   'Save changes': 'Değişiklikleri kaydet',
   'Could not save the profile.': 'Profil kaydedilemedi.',
-  'AWS did not authorize this switch. Sign in to this AWS Console session again, then try again.':
-    'AWS bu geçişi yetkilendirmedi. Bu AWS Console oturumuna yeniden giriş yapıp tekrar dene.',
+  'AWS did not authorize this switch. Check that this session may assume the role, then sign in again if needed.':
+    'AWS bu geçişi yetkilendirmedi. Bu oturumun role geçme yetkisi olduğunu doğrula, gerekirse yeniden giriş yap.',
   'This AWS Console session is no longer available. Reload the tab and try again.':
     'Bu AWS Console oturumu artık kullanılamıyor. Sekmeyi yenileyip tekrar dene.',
   'AWS is limiting switch requests right now. Wait a moment and try again.':

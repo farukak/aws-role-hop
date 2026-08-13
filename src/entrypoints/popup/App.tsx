@@ -31,7 +31,7 @@ import { markProfileUsed, setActiveProfileList, toggleFavorite } from '../../sto
 
 const SWITCH_FAILURE_MESSAGES: Record<AwsSwitchFailureCode, Message> = {
   unauthorized:
-    'AWS did not authorize this switch. Sign in to this AWS Console session again, then try again.',
+    'AWS did not authorize this switch. Check that this session may assume the role, then sign in again if needed.',
   sessionMissing: 'This AWS Console session is no longer available. Reload the tab and try again.',
   throttled: 'AWS is limiting switch requests right now. Wait a moment and try again.',
   unavailable: 'AWS could not complete the switch. Try again in a moment.',

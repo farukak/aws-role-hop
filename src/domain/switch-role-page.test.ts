@@ -169,3 +169,33 @@ describe('classifyAwsSwitchStatus', () => {
     expect(classifyAwsSwitchStatus(status)).toBe(expected);
   });
 });
+
+describe('readAwsConsoleSessionMetadata sign-in endpoint fallbacks', () => {
+  it('uses the separately published endpoint when the session data omits it', () => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"prismModeEnabled":true,"sessionDifferentiator":"934030966520-z3trodsy"}'>`;
+    document.body.innerHTML = `<div id="awsc-signin-endpoint" content="eu-west-1.signin.aws.amazon.com"></div>`;
+
+    expect(readAwsConsoleSessionMetadata(document)).toEqual({
+      prismModeEnabled: true,
+      sessionDifferentiator: '934030966520-z3trodsy',
+      signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
+    });
+  });
+
+  it.each([
+    ['us-gov-west-1', 'signin.amazonaws-us-gov.com'],
+    ['cn-north-1', 'signin.amazonaws.cn'],
+  ] as const)('derives the endpoint from the %s infrastructure region', (region, expected) => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"infrastructureRegion":"${region}"}'>`;
+    document.body.innerHTML = '';
+
+    expect(readAwsConsoleSessionMetadata(document).signInEndpoint).toBe(expected);
+  });
+
+  it('leaves the endpoint unresolved when AWS publishes nothing', () => {
+    document.head.innerHTML = `<meta name="awsc-session-data" content='{"prismModeEnabled":true}'>`;
+    document.body.innerHTML = '';
+
+    expect(readAwsConsoleSessionMetadata(document)).toEqual({ prismModeEnabled: true });
+  });
+});
