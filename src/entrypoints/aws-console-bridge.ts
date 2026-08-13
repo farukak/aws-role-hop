@@ -100,8 +100,10 @@ export default defineUnlistedScript(() => {
           if (!isAllowedAwsConsoleDestination(body.destination, request.partition)) {
             throw new Error('AWS returned an unsafe switch destination.');
           }
-          respond({ ok: true });
-          window.location.assign(body.destination);
+          // Navigating here would replace the session the switch was made from.
+          // The extension opens the destination instead, honouring the user's
+          // current-versus-new-tab preference.
+          respond({ ok: true, destination: body.destination });
           return;
         }
 

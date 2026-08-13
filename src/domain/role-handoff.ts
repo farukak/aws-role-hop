@@ -37,6 +37,10 @@ export interface RoleSwitchResult {
   ok: boolean;
   error?: string;
   code?: AwsSwitchFailureCode;
+  /** Set on a multi-session switch: AWS returns the destination instead of redirecting. */
+  destination?: string;
+  /** Reported by the readiness probe so the caller knows which switch flow applies. */
+  prismModeEnabled?: boolean;
 }
 
 const SWITCH_ROLE_DOMAINS: Record<Partition, string> = {
@@ -92,6 +96,8 @@ export function isRoleSwitchResult(value: unknown): value is RoleSwitchResult {
   return (
     typeof candidate.ok === 'boolean' &&
     (candidate.error === undefined || typeof candidate.error === 'string') &&
-    (candidate.code === undefined || isAwsSwitchFailureCode(candidate.code))
+    (candidate.code === undefined || isAwsSwitchFailureCode(candidate.code)) &&
+    (candidate.destination === undefined || typeof candidate.destination === 'string') &&
+    (candidate.prismModeEnabled === undefined || typeof candidate.prismModeEnabled === 'boolean')
   );
 }

@@ -80,7 +80,52 @@ describe('navigateToProfile', () => {
     await navigateToProfile(profile(), 'new');
 
     expect(duplicate).toHaveBeenCalledWith(42);
-    expect(send.mock.calls[0]?.[0]).toBe(84);
+    const switchCalls = send.mock.calls.filter(
+      ([, message]) => message !== ROLE_SWITCH_READY_MESSAGE_TYPE,
+    );
+    expect(switchCalls).toHaveLength(1);
+    expect(switchCalls[0]?.[0]).toBe(84);
+  });
+
+  it('opens the destination AWS returns for a multi-session switch', async () => {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      {
+        id: 42,
+        url: 'https://762888021956-efxjjxho.eu-west-1.console.aws.amazon.com/console/home',
+        status: 'complete',
+      },
+    ] as never);
+    const duplicate = vi.spyOn(browser.tabs, 'duplicate');
+    const create = vi.spyOn(browser.tabs, 'create').mockResolvedValue({} as never);
+    vi.spyOn(browser.tabs, 'sendMessage')
+      .mockResolvedValueOnce({ ok: true, prismModeEnabled: true } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        destination: 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+      } as never);
+
+    await navigateToProfile(profile(), 'new');
+
+    // The source session must survive, so its tab is neither duplicated nor reused.
+    expect(duplicate).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledWith({
+      url: 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+    });
+  });
+
+  it('refuses a multi-session destination that is not an AWS Console URL', async () => {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      { id: 42, url: 'https://eu-west-1.console.aws.amazon.com/console/home', status: 'complete' },
+    ] as never);
+    const create = vi.spyOn(browser.tabs, 'create');
+    vi.spyOn(browser.tabs, 'sendMessage')
+      .mockResolvedValueOnce({ ok: true, prismModeEnabled: true } as never)
+      .mockResolvedValueOnce({ ok: true, destination: 'https://evil.example.com/' } as never);
+
+    await expect(navigateToProfile(profile(), 'current')).rejects.toThrow(
+      'AWS did not return a usable switch destination.',
+    );
+    expect(create).not.toHaveBeenCalled();
   });
 
   it.each(['current', 'new'] as const)(

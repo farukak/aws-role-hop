@@ -1,4 +1,11 @@
-import { test, expect, seed, SAMPLE_PROFILES } from './fixtures';
+import {
+  test,
+  expect,
+  seed,
+  MULTI_SESSION_DESTINATION,
+  MULTI_SESSION_PREFIX,
+  SAMPLE_PROFILES,
+} from './fixtures';
 
 test.beforeEach(async ({ popup }) => {
   await seed(popup, { profiles: SAMPLE_PROFILES });
@@ -72,6 +79,77 @@ test('production requires confirmation and cancellation opens no tab', async ({
   await dialog.getByRole('button', { name: 'Cancel' }).click();
   await expect(dialog).toBeHidden();
   expect(context.pages()).toHaveLength(pagesBefore);
+});
+
+test('a multi-session switch opens AWS destination without disturbing the source session', async ({
+  context,
+  popup,
+}) => {
+  await seed(popup, {
+    settings: { openBehavior: 'new', confirmProduction: false },
+    profiles: [
+      {
+        type: 'role',
+        name: 'Sandbox developer',
+        accountId: '222222222222',
+        roleName: 'DeveloperRole',
+        environment: 'sandbox',
+        region: 'eu-west-1',
+      },
+    ],
+  });
+
+  const sessionUrl = `https://${MULTI_SESSION_PREFIX}762888021956.eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1`;
+  const consolePage = await context.newPage();
+  await consolePage.goto(sessionUrl);
+  await consolePage.waitForSelector('#aws-console-stub');
+
+  await popup.evaluate(async (url) => {
+    const scope = globalThis as typeof globalThis & {
+      chrome: {
+        tabs: {
+          query: (
+            query: Record<string, unknown>,
+          ) => Promise<{ id?: number; url?: string; status?: string }[]>;
+        };
+      };
+      close: () => void;
+    };
+    const originalQuery = scope.chrome.tabs.query.bind(scope.chrome.tabs);
+    const [activeTab] = await originalQuery({ active: true, currentWindow: true });
+    if (!activeTab) throw new Error('Active AWS Console fixture tab was not found.');
+    const consoleTab = { ...activeTab, url, status: 'complete' };
+    scope.chrome.tabs.query = async (query) =>
+      query.active === true && query.currentWindow === true ? [consoleTab] : originalQuery(query);
+    scope.close = () => {};
+  }, sessionUrl);
+
+  const switchRequestPromise = context.waitForEvent(
+    'request',
+    (request) =>
+      request.method() === 'POST' &&
+      /^\/sessions\/[^/]+\/v1\/switchrole$/.test(new URL(request.url()).pathname),
+  );
+  const openedPagePromise = context.waitForEvent('page');
+
+  await popup.getByRole('option', { name: 'Open Sandbox developer in AWS' }).click();
+
+  const switchRequest = await switchRequestPromise;
+  const requestUrl = new URL(switchRequest.url());
+  expect(requestUrl.hostname).toBe('eu-west-1.signin.aws.amazon.com');
+  expect(requestUrl.pathname).toBe(`/sessions/${MULTI_SESSION_PREFIX}762888021956/v1/switchrole`);
+  expect(JSON.parse(switchRequest.postData() ?? '{}')).toEqual({
+    account: '222222222222',
+    color: 'e98b9a',
+    displayName: 'Sandbox developer',
+    // The session label is dropped so AWS redirects to the plain Console host.
+    redirectUri: 'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1',
+    roleName: 'DeveloperRole',
+  });
+
+  const openedPage = await openedPagePromise;
+  await openedPage.waitForURL(MULTI_SESSION_DESTINATION);
+  expect(consolePage.url()).toBe(sessionUrl);
 });
 
 test('IAM launches post directly across consecutive Console reloads', async ({

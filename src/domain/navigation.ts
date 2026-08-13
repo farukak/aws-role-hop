@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
 import type { AppSettings, Profile, SsoProfileDraft } from './profile';
+import { isAllowedAwsConsoleDestination } from './switch-role-page';
 import {
   buildRoleSwitchRequest,
   buildRoleSwitchUrl,
@@ -7,6 +8,7 @@ import {
   ROLE_SWITCH_READY_MESSAGE_TYPE,
   type AwsSwitchFailureCode,
   type RoleSwitchRequest,
+  type RoleSwitchResult,
 } from './role-handoff';
 
 /** A switch AWS itself rejected, tagged so the interface can explain the cause. */
@@ -66,13 +68,40 @@ export async function navigateToProfile(
     throw new Error('Open AWS Role Hop from an authenticated AWS Console tab and try again.');
   }
 
-  const targetTab = openBehavior === 'new' ? await duplicateConsoleTab(activeTab.id) : activeTab;
-  if (!targetTab || targetTab.id === undefined) {
+  const readiness = await waitForBridgeReadiness(activeTab.id);
+  const request = buildRoleSwitchRequest(profile);
+
+  if (readiness.prismModeEnabled) {
+    // AWS answers a multi-session switch with a destination rather than
+    // redirecting the caller, so the source session survives the switch.
+    const result = requireSwitchResult(await sendSwitchRequest(activeTab.id, request));
+    if (
+      !result.destination ||
+      !isAllowedAwsConsoleDestination(result.destination, profile.partition)
+    ) {
+      throw new RoleSwitchError('AWS did not return a usable switch destination.');
+    }
+    await navigateToUrl(result.destination, openBehavior);
+    return;
+  }
+
+  // A standard switch is answered with a redirect in the tab that submitted it,
+  // so that tab has to be the one the user should end up looking at.
+  if (openBehavior !== 'new') {
+    requireSwitchResult(await sendSwitchRequest(activeTab.id, request));
+    return;
+  }
+
+  const targetTab = await duplicateConsoleTab(activeTab.id);
+  if (targetTab?.id === undefined) {
     throw new Error('The browser did not create an AWS Console tab.');
   }
 
   if (targetTab.status !== 'complete') await waitForTabReady(targetTab.id);
-  const result = await sendSwitchRequestWhenReady(targetTab.id, buildRoleSwitchRequest(profile));
+  requireSwitchResult(await sendSwitchRequestWhenReady(targetTab.id, request));
+}
+
+function requireSwitchResult(result: unknown): RoleSwitchResult {
   if (!isRoleSwitchResult(result) || !result.ok) {
     const failure = isRoleSwitchResult(result) ? result : undefined;
     throw new RoleSwitchError(
@@ -80,12 +109,18 @@ export async function navigateToProfile(
       failure?.code,
     );
   }
+  return result;
 }
 
 async function sendSwitchRequestWhenReady(
   tabId: number,
   request: RoleSwitchRequest,
 ): Promise<unknown> {
+  await waitForBridgeReadiness(tabId);
+  return sendSwitchRequest(tabId, request);
+}
+
+async function waitForBridgeReadiness(tabId: number): Promise<RoleSwitchResult> {
   const deadline = Date.now() + BRIDGE_READY_TIMEOUT_MS;
   while (true) {
     let readiness: unknown;
@@ -106,9 +141,11 @@ async function sendSwitchRequestWhenReady(
           : 'AWS Console rejected the AWS Role Hop bridge.',
       );
     }
-    break;
+    return readiness;
   }
+}
 
+async function sendSwitchRequest(tabId: number, request: RoleSwitchRequest): Promise<unknown> {
   try {
     return await browser.tabs.sendMessage(tabId, request);
   } catch {

@@ -7,6 +7,11 @@ const STORAGE_KEY = 'rolehop.appState';
 const DEFAULT_LIST_ID = '00000000-0000-4000-8000-000000000001';
 const COLORS = ['rose', 'peach', 'amber', 'mint', 'teal', 'sky', 'indigo', 'lilac'] as const;
 
+/** Console hostnames starting with this label are served as AWS multi-session tabs. */
+export const MULTI_SESSION_PREFIX = 'ms-';
+export const MULTI_SESSION_DESTINATION =
+  'https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1';
+
 /** Every external request is intercepted; only recognized AWS hosts receive a local stub. */
 const AWS_HOST_SUFFIXES = [
   'signin.aws.amazon.com',
@@ -62,6 +67,33 @@ export const test = base.extend<Extension>({
       const hostname = url.hostname.toLowerCase();
       if (!isAwsHost(hostname)) return route.abort('blockedbyclient');
 
+      // AWS multi-session posts JSON to a session-scoped endpoint from the
+      // Console origin, so the stub has to answer its CORS preflight too.
+      const isMultiSessionSwitch = /^\/sessions\/[^/]+\/v1\/switchrole$/.test(url.pathname);
+      if (isMultiSessionSwitch) {
+        const origin = request.headers()['origin'] ?? '';
+        const corsHeaders = {
+          'access-control-allow-origin': origin,
+          'access-control-allow-credentials': 'true',
+        };
+        if (request.method() === 'OPTIONS') {
+          return route.fulfill({
+            status: 204,
+            headers: {
+              ...corsHeaders,
+              'access-control-allow-methods': 'POST, OPTIONS',
+              'access-control-allow-headers': 'content-type, x-csrf-protection',
+            },
+            body: '',
+          });
+        }
+        return route.fulfill({
+          status: 200,
+          headers: { ...corsHeaders, 'content-type': 'application/json' },
+          body: JSON.stringify({ destination: MULTI_SESSION_DESTINATION }),
+        });
+      }
+
       const isStandardSwitch =
         request.method() === 'POST' &&
         hostname === 'signin.aws.amazon.com' &&
@@ -83,12 +115,29 @@ export const test = base.extend<Extension>({
       }
 
       const isConsole = hostname.includes('.console.');
+      if (!isConsole) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'text/html',
+          body: '<title>AWS sign-in stub</title><main>AWS sign-in response</main>',
+        });
+      }
+
+      // A leading multi-session label marks the tab as one AWS session among
+      // several, mirroring how the Console advertises its session data.
+      const [firstLabel = ''] = hostname.split('.');
+      const sessionData = firstLabel.startsWith(MULTI_SESSION_PREFIX)
+        ? {
+            prismModeEnabled: true,
+            sessionDifferentiator: firstLabel,
+            signInEndpoint: 'eu-west-1.signin.aws.amazon.com',
+          }
+        : { prismModeEnabled: false, signInEndpoint: 'signin.aws.amazon.com' };
+
       return route.fulfill({
         status: 200,
         contentType: 'text/html',
-        body: isConsole
-          ? `<meta name="awsc-session-data" content='{"prismModeEnabled":false,"signInEndpoint":"signin.aws.amazon.com"}'><script>globalThis.AWSC={Auth:{getMbtc:()=>"test-csrf"}}</script><title>AWS Console stub</title><main id="aws-console-stub">AWS Console</main>`
-          : '<title>AWS sign-in stub</title><main>AWS sign-in response</main>',
+        body: `<meta name="awsc-session-data" content='${JSON.stringify(sessionData)}'><script>globalThis.AWSC={Auth:{getMbtc:()=>"test-csrf"}}</script><title>AWS Console stub</title><main id="aws-console-stub">AWS Console</main>`,
       });
     });
 
