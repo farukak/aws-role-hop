@@ -486,6 +486,7 @@ body {
 
 .popup-mode-switch {
   display: grid;
+  margin: 0 16px 10px;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   padding: 4px;
@@ -524,6 +525,7 @@ body {
 
 .popup-mode-hint {
   display: flex;
+  margin: 0 16px 10px;
   gap: 8px;
   align-items: center;
   justify-content: space-between;
@@ -554,6 +556,7 @@ body {
 
 .portal-scan {
   display: grid;
+  margin: 0 16px 10px;
   gap: 10px;
   padding: 12px;
   background: var(--color-surface);
@@ -620,6 +623,7 @@ body {
 }
 
 .popup-notice {
+  margin: 0 16px 10px;
   padding: 8px 11px;
   font-size: 0.78rem;
   color: var(--color-success);
@@ -628,7 +632,7 @@ body {
 }
 
 .popup-guidance {
-  margin: 0;
+  margin: 0 16px 10px;
   font-size: 0.75rem;
   line-height: 1.4;
   color: var(--color-text-tertiary);

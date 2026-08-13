@@ -2,7 +2,7 @@
 
 AWS Role Hop is a fast, private profile launcher for the AWS Management Console. It keeps IAM roles and IAM Identity Center permission sets searchable without storing credentials or reading AWS Console pages.
 
-> AWS Role Hop is under active development and has not been published to browser stores yet.
+> **[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/aws-role-hop/oemhdcinifpcgdbffhojpbjflpgbbhcb)** — also works in Brave and other Chromium browsers. Edge, Firefox, and Safari builds are produced from the same source; see [Browser support](#browser-support).
 
 [![CI](https://github.com/farukak/aws-role-hop/actions/workflows/ci.yml/badge.svg)](https://github.com/farukak/aws-role-hop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -17,6 +17,7 @@ AWS Role Hop is a fast, private profile launcher for the AWS Management Console.
 - IAM role profiles for the standard AWS, AWS GovCloud (US), and AWS China partitions
 - AWS IAM Identity Center shortcuts with optional landing regions
 - Discovery of Identity Center accounts and permission sets from your AWS access portal, behind a permission the browser only asks for when you use it
+- Separate default lists per access path, so IAM and SSO profiles never mix
 - Unlimited named profile lists with explicit active and default-list behavior
 - Automatic or manually selected low-saturation pastel colors, with distinct production and staging treatments
 - Favorites, recent profiles, tags, account masking, and keyboard-first search
@@ -28,9 +29,13 @@ AWS Role Hop is a fast, private profile launcher for the AWS Management Console.
 
 ## Screenshots
 
-| Profiles                                                                                    | Import                                                                                    |
-| ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| [![Searchable AWS profile lists](docs/assets/01-profiles.png)](docs/assets/01-profiles.png) | [![Credential-safe profile import](docs/assets/02-import.png)](docs/assets/02-import.png) |
+| Popup                                                                                    | Profiles                                                                                    |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| [![Keyboard-first profile launcher](docs/assets/06-popup.png)](docs/assets/06-popup.png) | [![Searchable AWS profile lists](docs/assets/01-profiles.png)](docs/assets/01-profiles.png) |
+
+| Import                                                                                    | Discover                                                                                                        |
+| ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| [![Credential-safe profile import](docs/assets/02-import.png)](docs/assets/02-import.png) | [![Identity Center discovery from the access portal](docs/assets/05-discover.png)](docs/assets/05-discover.png) |
 
 | Preferences                                                                                                   | What's new                                                                                   |
 | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
@@ -46,6 +51,7 @@ AWS Role Hop requests `storage`, `activeTab`, and narrowly scoped access to supp
 - AWS access keys, secret keys, session tokens, credential processes, and token files are excluded from imports.
 - There is no analytics, telemetry, account system, backend, or remotely hosted code.
 - Identity Center navigation uses [AWS IAM Identity Center shortcut links](https://docs.aws.amazon.com/singlesignon/latest/userguide/createshortcutlink.html).
+- Reading accounts and permission sets from an AWS access portal requires an **optional** permission the browser asks for only when you start discovery. The lookup runs in a portal tab using the session already there; no cookie or token is read or stored, and the permission can be withdrawn at any time.
 - IAM role launches start from the authenticated AWS Console tab. A content script limited to supported Console origins passes the selected account, role, display name, landing region, and AWS Role Hop color to a bundled page-context bridge. The bridge reads AWS's own sign-in endpoint, multi-session metadata, and ephemeral CSRF value, then submits AWS's native switch-role POST directly. No intermediate Switch Role page is opened. AWS controls authentication, authorization, role-history persistence, and the final redirect.
 - AWS Role Hop does not read browser cookies or credentials. The CSRF value and Console metadata are used only in memory for the requested switch and are not stored, logged, or sent anywhere except AWS's validated sign-in endpoint.
 - Production profiles require a separate AWS Role Hop confirmation by default.
@@ -70,15 +76,19 @@ AWS Role Hop supports current stable browser releases. Store signing, listing as
 
 Safari uses the same WebExtension source, followed by [Apple's Safari extension packaging flow](https://developer.apple.com/safari/extensions/). Browser-specific manifests are generated by [WXT](https://wxt.dev/guide/essentials/target-different-browsers).
 
+### Install from a browser store
+
+Chrome and Brave: **[AWS Role Hop on the Chrome Web Store](https://chromewebstore.google.com/detail/aws-role-hop/oemhdcinifpcgdbffhojpbjflpgbbhcb)**. The store build updates itself.
+
 ### Install an unpacked development build
 
-No signed store build is available yet. To evaluate AWS Role Hop locally:
+To evaluate an unreleased change locally:
 
 1. Install Node.js 24 and run `npm ci`.
 2. Run `npm run build:chrome`.
 3. Open `chrome://extensions`, enable **Developer mode**, select **Load unpacked**, and choose `.output/chrome-mv3`.
 
-Unpacked builds are unsigned and do not auto-update. Firefox can load `.output/firefox-mv3/manifest.json` temporarily from `about:debugging`; Safari requires Apple's conversion, signing, and packaging flow. Use signed browser-store builds when they become available.
+Unpacked builds are unsigned and do not auto-update. Firefox can load `.output/firefox-mv3/manifest.json` temporarily from `about:debugging`; Safari requires Apple's conversion, signing, and packaging flow. Prefer the signed store build for everyday use.
 
 ## Releases and updates
 
