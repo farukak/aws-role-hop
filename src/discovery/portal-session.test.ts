@@ -134,7 +134,9 @@ describe('discoverPortalProfiles', () => {
     expect(failure).toBeInstanceOf(PortalDiscoveryError);
     const discoveryError = failure as PortalDiscoveryError;
     expect(discoveryError.code).toBe('failed');
-    expect(discoveryError.message).toContain('503');
+    // The typed message stays translatable; the detail carries what actually happened.
+    expect(discoveryError.detail).toContain('503');
+    expect(discoveryError.detail).toContain('/api/portal/instance/appinstances');
   });
 
   it('returns nothing when the portal offers no accounts', async () => {

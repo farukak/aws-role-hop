@@ -60,6 +60,7 @@ function setup(state: AppState) {
 beforeEach(async () => {
   fakeBrowser.reset();
   vi.clearAllMocks();
+  window.history.replaceState(null, '', '/');
   await saveAppState(createDefaultState());
 });
 
@@ -177,5 +178,27 @@ describe('DiscoverView', () => {
     expect(
       screen.getByRole('button', { name: /Find accounts and roles/ }).hasAttribute('disabled'),
     ).toBe(true);
+  });
+});
+
+describe('DiscoverView — portal handed over from the popup', () => {
+  it('prefills the portal the popup saw', () => {
+    window.history.replaceState(null, '', `/#discover?portal=${encodeURIComponent(PORTAL)}`);
+    const base = createDefaultState();
+    setup({ ...base, settings: { ...base.settings, accessMode: 'sso' } });
+
+    expect(screen.getByLabelText('Access portal URL')).toHaveProperty('value', PORTAL);
+  });
+
+  it('ignores a handed-over address that is not an access portal', () => {
+    window.history.replaceState(
+      null,
+      '',
+      `/#discover?portal=${encodeURIComponent('https://portal.example.com/start')}`,
+    );
+    const base = createDefaultState();
+    setup({ ...base, settings: { ...base.settings, accessMode: 'sso' } });
+
+    expect(screen.getByLabelText('Access portal URL')).toHaveProperty('value', '');
   });
 });

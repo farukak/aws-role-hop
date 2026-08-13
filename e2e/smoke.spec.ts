@@ -11,9 +11,9 @@ test('extension loads and the popup renders', async ({ popup, extensionId }) => 
   await expect(
     popup.getByRole('listbox', { name: 'AWS profiles' }).getByRole('option'),
   ).toHaveCount(2);
-  await expect(popup.getByText('This list also has Identity Center profiles.')).toBeVisible();
+  await expect(popup.getByText('This list also has SSO profiles.')).toBeVisible();
 
-  await popup.getByRole('button', { name: 'Switch to Identity Center' }).click();
+  await popup.getByRole('button', { name: 'Switch to SSO' }).click();
   await expect(
     popup.getByRole('listbox', { name: 'AWS profiles' }).getByRole('option'),
   ).toHaveCount(1);

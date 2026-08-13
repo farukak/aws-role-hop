@@ -6,7 +6,7 @@ import {
   requestPortalAccess,
   type PortalDiscoveryFailure,
 } from '../../discovery/portal-session';
-import type { AppState, ProfileDraft } from '../../domain/profile';
+import { isAllowedPortalUrl, type AppState, type ProfileDraft } from '../../domain/profile';
 import { importProfiles } from '../../storage/app-state';
 import { useI18n, type Message } from '../../i18n';
 import type { Notify } from './App';
@@ -17,6 +17,17 @@ const DISCOVERY_FAILURE_MESSAGES: Record<PortalDiscoveryFailure, Message> = {
   unauthorized: 'Sign in to the access portal in a tab, then try again.',
   failed: 'The access portal could not be read.',
 };
+
+/**
+ * The popup can hand over the portal it saw in the active tab. Only a real portal
+ * is accepted, so a crafted link cannot aim discovery somewhere else.
+ */
+function portalFromHash(hash: string): string {
+  const query = hash.split('?')[1];
+  if (query === undefined) return '';
+  const value = new URLSearchParams(query).get('portal') ?? '';
+  return value !== '' && isAllowedPortalUrl(value) ? value : '';
+}
 
 interface DiscoverViewProps {
   state: AppState;
@@ -33,11 +44,14 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
     return sso?.type === 'sso' ? sso.portalUrl : '';
   }, [state.profiles]);
 
-  const [portalUrl, setPortalUrl] = useState(knownPortal);
+  const [portalUrl, setPortalUrl] = useState(
+    () => portalFromHash(window.location.hash) || knownPortal,
+  );
   const [destinationListId, setDestinationListId] = useState(state.defaultProfileListId);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<ProfileDraft[] | null>(null);
   const [accountCount, setAccountCount] = useState(0);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -50,6 +64,7 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
 
   async function discover(): Promise<void> {
     setError(null);
+    setErrorDetail(null);
     reset();
     setBusy(true);
     try {
@@ -71,6 +86,9 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
           : discoveryError instanceof Error
             ? discoveryError.message
             : t('The access portal could not be read.'),
+      );
+      setErrorDetail(
+        discoveryError instanceof PortalDiscoveryError ? (discoveryError.detail ?? null) : null,
       );
     } finally {
       setBusy(false);
@@ -119,7 +137,7 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
     <section className="options-view">
       <header className="view-header">
         <div>
-          <p className="view-header__eyebrow">{t('Identity Center')}</p>
+          <p className="view-header__eyebrow">{t('SSO')}</p>
           <h1>{t('Find accounts from your AWS access portal')}</h1>
           <p>
             {t(
@@ -150,6 +168,7 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
             onChange={(event) => {
               setPortalUrl(event.target.value);
               setError(null);
+              setErrorDetail(null);
             }}
             placeholder="https://my-portal.awsapps.com/start"
             spellCheck={false}
@@ -159,7 +178,10 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
 
         {error && (
           <div className="review-notice review-notice--warning" role="alert">
-            {error}
+            <div>
+              <strong>{error}</strong>
+              {errorDetail && <code className="discover-detail">{errorDetail}</code>}
+            </div>
           </div>
         )}
 

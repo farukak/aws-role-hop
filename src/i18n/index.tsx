@@ -61,10 +61,18 @@ const TURKISH_MESSAGES = {
     'AWS Role Hop portal erişimini yalnızca Identity Center’ı seçtiğinde ister.',
   'Could not save the access mode.': 'Erişim modu kaydedilemedi.',
   IAM: 'IAM',
-  'This list also has Identity Center profiles.': 'Bu listede Identity Center profilleri de var.',
+  SSO: 'SSO',
+  'This list also has SSO profiles.': 'Bu listede SSO profilleri de var.',
   'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
-  'Switch to Identity Center': 'Identity Center’a geç',
+  'Switch to SSO': 'SSO’ya geç',
   'Switch to IAM': 'IAM’e geç',
+  'You are on an AWS access portal.': 'Bir AWS erişim portalındasın.',
+  'Scan this portal': 'Bu portalı tara',
+  'Bring in your SSO accounts': 'SSO hesaplarını içeri al',
+  'AWS Role Hop can ask your AWS access portal which accounts and roles you may use, then keep them here.':
+    'AWS Role Hop, AWS erişim portalına hangi hesap ve rolleri kullanabildiğini sorup bunları burada tutabilir.',
+  'SSO profiles open through your AWS access portal. AWS still verifies your session and access.':
+    'SSO profilleri AWS erişim portalın üzerinden açılır. Oturumunu ve erişimini yine AWS doğrular.',
   Discover: 'Keşfet',
   'Find accounts from your AWS access portal': 'AWS erişim portalından hesapları bul',
   'AWS Role Hop asks the portal which accounts and permission sets you can use, then turns them into profiles.':

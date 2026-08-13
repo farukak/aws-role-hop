@@ -39,7 +39,8 @@ const NAV_ITEMS = [
 ] as const;
 
 export function resolveOptionsView(hash: string): OptionsView {
-  const candidate = hash.replace(/^#/, '');
+  // The discovery link may carry a portal to prefill, so drop any parameters first.
+  const candidate = (hash.replace(/^#/, '').split('?')[0] ?? '').trim();
   return candidate === 'import' ||
     candidate === 'discover' ||
     candidate === 'preferences' ||

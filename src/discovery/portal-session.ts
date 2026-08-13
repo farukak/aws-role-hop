@@ -22,11 +22,23 @@ export type PortalDiscoveryFailure = (typeof PORTAL_DISCOVERY_FAILURES)[number];
 
 export class PortalDiscoveryError extends Error {
   readonly code: PortalDiscoveryFailure;
+  /** What actually went wrong, kept verbatim so a failure stays diagnosable. */
+  readonly detail: string | undefined;
 
-  constructor(code: PortalDiscoveryFailure, message: string) {
+  constructor(code: PortalDiscoveryFailure, message: string, detail?: string) {
     super(message);
     this.name = 'PortalDiscoveryError';
     this.code = code;
+    this.detail = detail;
+  }
+}
+
+function describe(endpoint: string, reason: string): string {
+  try {
+    const { pathname, search } = new URL(endpoint);
+    return `${pathname}${search} — ${reason}`;
+  } catch {
+    return reason;
   }
 }
 
@@ -115,19 +127,43 @@ function withToken(endpoint: string, token: string | null): string {
   return url.toString();
 }
 
-function readInjectionResult(injected: unknown): { status: number; payload: unknown } {
+function readInjectionResult(
+  injected: unknown,
+  endpoint: string,
+): { status: number; payload: unknown } {
   const first = Array.isArray(injected) ? (injected[0] as unknown) : undefined;
-  const result =
+  const entry =
     typeof first === 'object' && first !== null
-      ? (first as { result?: unknown }).result
+      ? (first as { result?: unknown; error?: unknown })
       : undefined;
 
+  // A request that threw inside the tab is reported through `error`.
+  const failure = entry?.error;
+  if (failure !== undefined && failure !== null) {
+    const reason =
+      failure instanceof Error
+        ? failure.message
+        : typeof failure === 'string'
+          ? failure
+          : JSON.stringify(failure);
+    throw new PortalDiscoveryError(
+      'failed',
+      'The access portal could not be read.',
+      describe(endpoint, reason),
+    );
+  }
+
+  const result = entry?.result;
   if (typeof result === 'object' && result !== null && 'status' in result) {
     const { status, payload } = result as { status: unknown; payload?: unknown };
     if (typeof status === 'number') return { status, payload };
   }
 
-  throw new PortalDiscoveryError('failed', 'The access portal tab returned nothing.');
+  throw new PortalDiscoveryError(
+    'failed',
+    'The access portal could not be read.',
+    describe(endpoint, 'the portal tab returned nothing'),
+  );
 }
 
 /** One same-origin call against the portal. The tab-backed one is the real path. */
@@ -136,12 +172,24 @@ export type PortalTransport = (endpoint: string) => Promise<{ status: number; pa
 export async function openPortalTransport(portalUrl: string): Promise<PortalTransport> {
   const tabId = await portalTabId(portalUrl);
   return async (endpoint: string) => {
-    const injected: unknown = await browser.scripting.executeScript({
-      target: { tabId },
-      args: [endpoint],
-      func: portalRequest,
-    });
-    return readInjectionResult(injected);
+    let injected: unknown;
+    try {
+      injected = await browser.scripting.executeScript({
+        target: { tabId },
+        args: [endpoint],
+        func: portalRequest,
+      });
+    } catch (injectionError: unknown) {
+      throw new PortalDiscoveryError(
+        'failed',
+        'The access portal could not be read.',
+        describe(
+          endpoint,
+          injectionError instanceof Error ? injectionError.message : 'injection was refused',
+        ),
+      );
+    }
+    return readInjectionResult(injected, endpoint);
   };
 }
 
@@ -162,7 +210,11 @@ async function collect<T>(
       );
     }
     if (answer.status < 200 || answer.status >= 300) {
-      throw new PortalDiscoveryError('failed', `The access portal answered ${answer.status}.`);
+      throw new PortalDiscoveryError(
+        'failed',
+        'The access portal could not be read.',
+        describe(endpoint, `answered ${answer.status}`),
+      );
     }
 
     const parsed = parse(answer.payload);

@@ -133,7 +133,7 @@ export function PreferencesView({ state, notify, onShowWhatsNew }: PreferencesVi
             <ChoiceButton
               selected={state.settings.accessMode === 'sso'}
               onClick={() => void saveSetting({ accessMode: 'sso' })}
-              title={t('IAM Identity Center')}
+              title={t('SSO')}
               description={t('Needs access to your AWS access portal')}
             />
           </ChoiceGroup>

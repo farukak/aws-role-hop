@@ -422,7 +422,7 @@ describe('PopupApp — first-run access mode', () => {
     await seedUnset();
     render(<PopupApp />);
 
-    await waitFor(() => screen.getByRole('button', { name: /IAM Identity Center/ }));
+    await waitFor(() => screen.getByRole('button', { name: /SSO/ }));
     expect(screen.getByText('Needs access to your AWS access portal')).toBeDefined();
   });
 
@@ -431,9 +431,7 @@ describe('PopupApp — first-run access mode', () => {
     render(<PopupApp />);
     const user = userEvent.setup();
 
-    await user.click(
-      await waitFor(() => screen.getByRole('button', { name: /IAM Identity Center/ })),
-    );
+    await user.click(await waitFor(() => screen.getByRole('button', { name: /SSO/ })));
 
     await waitFor(async () => {
       expect((await loadAppState()).settings.accessMode).toBe('sso');
@@ -512,10 +510,8 @@ describe('PopupApp — access mode separation', () => {
     render(<PopupApp />);
     const user = userEvent.setup();
 
-    await waitFor(() =>
-      expect(screen.getByText('This list also has Identity Center profiles.')).toBeDefined(),
-    );
-    await user.click(screen.getByRole('button', { name: 'Switch to Identity Center' }));
+    await waitFor(() => expect(screen.getByText('This list also has SSO profiles.')).toBeDefined());
+    await user.click(screen.getByRole('button', { name: 'Switch to SSO' }));
 
     await waitFor(async () => {
       expect((await loadAppState()).settings.accessMode).toBe('sso');
@@ -528,6 +524,79 @@ describe('PopupApp — access mode separation', () => {
     render(<PopupApp />);
 
     await waitFor(() => expect(screen.getByText('Production admin')).toBeDefined());
-    expect(screen.queryByText('This list also has Identity Center profiles.')).toBeNull();
+    expect(screen.queryByText('This list also has SSO profiles.')).toBeNull();
+  });
+});
+
+describe('PopupApp — SSO mode entry points', () => {
+  const PORTAL = 'https://ssoins-1234567890abcdef.portal.eu-west-1.app.aws';
+
+  async function seedMode(accessMode: 'iam' | 'sso', profiles: ReturnType<typeof draft>[] = []) {
+    const base = createDefaultState();
+    await saveAppState({
+      ...base,
+      settings: { ...base.settings, accessMode },
+      profiles: profiles.map((entry) => createProfile(entry)),
+    });
+  }
+
+  function ssoProfile(): ReturnType<typeof profileDraftSchema.parse> {
+    return profileDraftSchema.parse({
+      type: 'sso',
+      name: 'Platform access',
+      accountId: '222222222222',
+      roleName: 'PlatformAccess',
+      portalUrl: PORTAL,
+      environment: 'other',
+      favorite: false,
+      tags: [],
+    });
+  }
+
+  function mockPortalTab(url: string) {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([{ id: 7, url, active: true }] as never);
+    return vi.spyOn(browser.tabs, 'create').mockResolvedValue({ id: 8 } as never);
+  }
+
+  it('points an empty SSO list at discovery rather than at import', async () => {
+    await seedMode('sso');
+    render(<PopupApp />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Bring in your SSO accounts' })).toBeDefined(),
+    );
+    expect(screen.getByRole('button', { name: /Find accounts and roles/ })).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Import profiles/ })).toBeNull();
+  });
+
+  it('keeps the IAM empty state on import', async () => {
+    await seedMode('iam');
+    render(<PopupApp />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Add your first profile' })).toBeDefined(),
+    );
+    expect(screen.getByRole('button', { name: /Import profiles/ })).toBeDefined();
+  });
+
+  it('offers to scan the portal the popup was opened on', async () => {
+    await seedMode('sso', [ssoProfile()]);
+    const create = mockPortalTab(`${PORTAL}/#/`);
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    await user.click(await waitFor(() => screen.getByRole('button', { name: 'Scan this portal' })));
+
+    const opened = create.mock.calls[0]?.[0];
+    expect(String(opened?.url)).toContain(`#discover?portal=${encodeURIComponent(`${PORTAL}/`)}`);
+  });
+
+  it('stays quiet about scanning when the tab is not a portal', async () => {
+    await seedMode('sso', [ssoProfile()]);
+    mockPortalTab('https://eu-west-1.console.aws.amazon.com/console/home');
+    render(<PopupApp />);
+
+    await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
+    expect(screen.queryByRole('button', { name: 'Scan this portal' })).toBeNull();
   });
 });

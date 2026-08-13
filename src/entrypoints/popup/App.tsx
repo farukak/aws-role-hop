@@ -4,6 +4,7 @@ import {
   FileInput,
   Layers3,
   Plus,
+  Radar,
   Search,
   Settings,
   ShieldAlert,
@@ -25,7 +26,13 @@ import {
 } from '../../components/ProfileVisual';
 import { StatusCard } from '../../components/StatusCard';
 import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
-import { DEFAULT_PROFILE_LIST_ID, sortProfiles, type Profile } from '../../domain/profile';
+import {
+  DEFAULT_PROFILE_LIST_ID,
+  isAllowedPortalUrl,
+  normalizePortalUrl,
+  sortProfiles,
+  type Profile,
+} from '../../domain/profile';
 import { searchProfiles } from '../../domain/search';
 import { useAppState, useTheme } from '../../hooks/useAppState';
 import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
@@ -57,8 +64,23 @@ export function PopupApp() {
   const [pendingProduction, setPendingProduction] = useState<Profile | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingMode, setPendingMode] = useState<AccessModeChoice | null>(null);
+  const [portalTabUrl, setPortalTabUrl] = useState<string | null>(null);
 
   useTheme(state?.settings.theme);
+
+  // `activeTab` reveals the tab the popup was opened from, which is how a portal
+  // can be offered for scanning without asking for standing tab access.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [active] = await browser.tabs.query({ active: true, currentWindow: true });
+        const url = typeof active?.url === 'string' ? active.url : '';
+        if (url !== '' && isAllowedPortalUrl(url)) setPortalTabUrl(normalizePortalUrl(url));
+      } catch {
+        // The scan shortcut is a convenience; the popup works without it.
+      }
+    })();
+  }, []);
 
   const accessMode = state?.settings.accessMode ?? 'unset';
   const activeListProfiles = useMemo(
@@ -186,6 +208,20 @@ export function PopupApp() {
     }
   }
 
+  async function openDiscovery(): Promise<void> {
+    setActionError(null);
+    try {
+      const suffix = portalTabUrl === null ? '' : `?portal=${encodeURIComponent(portalTabUrl)}`;
+      const url = browser.runtime.getURL(`/options.html#discover${suffix}`);
+      await browser.tabs.create({ url });
+      window.close();
+    } catch (discoveryError: unknown) {
+      setActionError(
+        discoveryError instanceof Error ? discoveryError.message : t('Could not open settings.'),
+      );
+    }
+  }
+
   async function openOptions(): Promise<void> {
     setActionError(null);
     try {
@@ -249,7 +285,7 @@ export function PopupApp() {
         />
         <ModeOption
           mode="sso"
-          label={t('Identity Center')}
+          label={t('SSO')}
           selected={accessMode === 'sso'}
           onSelect={() => void chooseAccessMode('sso')}
         />
@@ -328,13 +364,26 @@ export function PopupApp() {
           : t('{count} profiles available.', { count: listProfiles.length })}
       </p>
 
+      {accessMode === 'sso' && portalTabUrl !== null && (
+        <div className="popup-mode-hint">
+          <span>{t('You are on an AWS access portal.')}</span>
+          <button type="button" onClick={() => void openDiscovery()}>
+            {t('Scan this portal')}
+          </button>
+        </div>
+      )}
+
       {listProfiles.length > 0 && (
         <div className="popup-handoff-note">
           <ShieldCheck size={14} strokeWidth={1.8} aria-hidden="true" />
           <span>
-            {t(
-              "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.",
-            )}
+            {accessMode === 'sso'
+              ? t(
+                  'SSO profiles open through your AWS access portal. AWS still verifies your session and access.',
+                )
+              : t(
+                  "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.",
+                )}
           </span>
         </div>
       )}
@@ -350,36 +399,69 @@ export function PopupApp() {
           <span>
             {accessMode === 'sso'
               ? t('This list also has IAM profiles.')
-              : t('This list also has Identity Center profiles.')}
+              : t('This list also has SSO profiles.')}
           </span>
           <button
             type="button"
             onClick={() => void chooseAccessMode(accessMode === 'sso' ? 'iam' : 'sso')}
           >
-            {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to Identity Center')}
+            {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to SSO')}
           </button>
         </div>
       )}
 
       {listProfiles.length === 0 ? (
-        <StatusCard
-          title={t('Add your first profile')}
-          description={t(
-            'Create an IAM role or Identity Center shortcut. Everything stays in this browser.',
-          )}
-          action={
-            <div className="popup-empty-actions">
-              <button className="primary-button" type="button" onClick={() => void openOptions()}>
-                <Plus size={16} aria-hidden="true" />
-                {t('Add profile')}
-              </button>
-              <button className="secondary-button" type="button" onClick={() => void openImport()}>
-                <FileInput size={16} aria-hidden="true" />
-                {t('Import profiles')}
-              </button>
-            </div>
-          }
-        />
+        accessMode === 'sso' ? (
+          <StatusCard
+            title={t('Bring in your SSO accounts')}
+            description={t(
+              'AWS Role Hop can ask your AWS access portal which accounts and roles you may use, then keep them here.',
+            )}
+            action={
+              <div className="popup-empty-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => void openDiscovery()}
+                >
+                  <Radar size={16} aria-hidden="true" />
+                  {portalTabUrl === null ? t('Find accounts and roles') : t('Scan this portal')}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => void openOptions()}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  {t('Add profile')}
+                </button>
+              </div>
+            }
+          />
+        ) : (
+          <StatusCard
+            title={t('Add your first profile')}
+            description={t(
+              'Create an IAM role or Identity Center shortcut. Everything stays in this browser.',
+            )}
+            action={
+              <div className="popup-empty-actions">
+                <button className="primary-button" type="button" onClick={() => void openOptions()}>
+                  <Plus size={16} aria-hidden="true" />
+                  {t('Add profile')}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => void openImport()}
+                >
+                  <FileInput size={16} aria-hidden="true" />
+                  {t('Import profiles')}
+                </button>
+              </div>
+            }
+          />
+        )
       ) : profiles.length === 0 ? (
         <StatusCard
           title={t('No matching profiles')}

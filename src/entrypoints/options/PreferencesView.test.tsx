@@ -309,7 +309,7 @@ describe('PreferencesView — access mode', () => {
   it('persists Identity Center as the default access mode', async () => {
     const { user } = setup({ accessMode: 'iam' });
 
-    await user.click(screen.getByRole('radio', { name: /IAM Identity Center/ }));
+    await user.click(screen.getByRole('radio', { name: /SSO/ }));
 
     await waitFor(async () => {
       expect((await loadAppState()).settings.accessMode).toBe('sso');

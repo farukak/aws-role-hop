@@ -16,6 +16,7 @@ describe('options deep links', () => {
   it.each([
     ['#import', 'import'],
     ['#discover', 'discover'],
+    ['#discover?portal=https://example.awsapps.com/start', 'discover'],
     ['#preferences', 'preferences'],
     ['#whats-new', 'whats-new'],
     ['#profiles', 'profiles'],

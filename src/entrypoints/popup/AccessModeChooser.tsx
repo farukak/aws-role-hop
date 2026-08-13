@@ -60,7 +60,7 @@ export function AccessModeChooser({ onChoose, busy, error }: AccessModeChooserPr
         >
           <AccessModeMark mode="sso" size={46} />
           <span className="access-mode-card__copy">
-            <strong>{t('IAM Identity Center')}</strong>
+            <strong>{t('SSO')}</strong>
             <small>{t('Open permission sets through your AWS access portal.')}</small>
             <span className="access-mode-card__note">
               {t('Needs access to your AWS access portal')}
