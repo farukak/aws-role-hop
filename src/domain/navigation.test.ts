@@ -84,6 +84,20 @@ describe('buildProfileUrl — Identity Center profiles', () => {
     );
   });
 
+  it('builds the current root-hosted portal shortcut without inventing a /start segment', () => {
+    const url = buildProfileUrl(
+      ssoProfile({
+        portalUrl: 'https://ssoins-6804d6c86d343f0e.portal.eu-west-1.app.aws',
+        accountId: '293529946293',
+        roleName: 'BackendViewOnlyAccess',
+      }),
+    );
+
+    expect(url).toBe(
+      'https://ssoins-6804d6c86d343f0e.portal.eu-west-1.app.aws/#/console?account_id=293529946293&role_name=BackendViewOnlyAccess',
+    );
+  });
+
   it('keeps a nested portal path', () => {
     expect(buildProfileUrl(ssoProfile({ portalUrl: 'https://example.app.aws/start' }))).toBe(
       'https://example.app.aws/start/#/console?account_id=123456789012&role_name=PlatformAccess',

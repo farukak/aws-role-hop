@@ -492,3 +492,32 @@ describe('access mode setting', () => {
     expect(parsed.success).toBe(false);
   });
 });
+
+describe('AWS access portal URL formats', () => {
+  const rootPortal = 'https://ssoins-6804d6c86d343f0e.portal.eu-west-1.app.aws';
+
+  it('accepts the current root-hosted access portal', () => {
+    const parsed = profileDraftSchema.safeParse(ssoDraft({ portalUrl: rootPortal }));
+    expect(parsed.success).toBe(true);
+  });
+
+  it('still accepts the older /start portal', () => {
+    const parsed = profileDraftSchema.safeParse(
+      ssoDraft({ portalUrl: 'https://example.awsapps.com/start' }),
+    );
+    expect(parsed.success).toBe(true);
+  });
+
+  it.each([
+    'https://example.awsapps.com/other',
+    'https://example.awsapps.com/start/extra',
+    'http://ssoins-1.portal.eu-west-1.app.aws',
+    'https://example.com/start',
+  ])('rejects %s', (portalUrl) => {
+    expect(firstIssuePath(ssoDraft({ portalUrl }))).toContain('portalUrl');
+  });
+
+  it('keeps one identity for a root portal written with or without a trailing slash', () => {
+    expect(normalizePortalUrl(`${rootPortal}/`)).toBe(normalizePortalUrl(rootPortal));
+  });
+});

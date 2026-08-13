@@ -109,10 +109,15 @@ function isAllowedPortalUrl(value: string): boolean {
       hostname.endsWith('.awsapps.cn') ||
       hostname.endsWith('.app.aws');
 
+    // Older portals live under /start; the current ones are served from the root
+    // of their own host. Both answer the same #/console shortcut.
+    const path = url.pathname.replace(/\/+$/, '');
+    const allowedPath = path === '' || path === '/start';
+
     return (
       url.protocol === 'https:' &&
       allowedHost &&
-      url.pathname.replace(/\/+$/, '') === '/start' &&
+      allowedPath &&
       url.username === '' &&
       url.password === '' &&
       url.port === ''
@@ -128,7 +133,7 @@ const portalUrlSchema = z
     z.trim(),
     z.minLength(1, 'AWS access portal URL is required.'),
     z.maxLength(PORTAL_URL_MAX_LENGTH, 'AWS access portal URL is too long.'),
-    z.refine(isAllowedPortalUrl, 'Use a valid HTTPS AWS access portal URL ending in /start.'),
+    z.refine(isAllowedPortalUrl, 'Use a valid HTTPS AWS access portal URL.'),
   );
 
 const tagSchema = z

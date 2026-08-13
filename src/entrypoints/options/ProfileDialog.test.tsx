@@ -236,9 +236,7 @@ describe('ProfileDialog — saving', () => {
     await user.click(screen.getByRole('button', { name: 'Add profile' }));
 
     await waitFor(() =>
-      expect(
-        screen.getByText('Use a valid HTTPS AWS access portal URL ending in /start.'),
-      ).toBeDefined(),
+      expect(screen.getByText('Use a valid HTTPS AWS access portal URL.')).toBeDefined(),
     );
     expect(onSave).not.toHaveBeenCalled();
   });
