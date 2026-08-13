@@ -31,6 +31,16 @@ async function seed(...drafts: ReturnType<typeof draft>[]): Promise<void> {
   });
 }
 
+/** The confirmation is off by default, so the tests that cover it turn it on. */
+async function seedConfirming(...drafts: ReturnType<typeof draft>[]): Promise<void> {
+  const base = createDefaultState();
+  await saveAppState({
+    ...base,
+    settings: { ...base.settings, accessMode: 'iam', confirmProduction: true },
+    profiles: drafts.map((entry) => createProfile(entry)),
+  });
+}
+
 /**
  * A profile row holds two buttons: the switch action first, then the favorite
  * toggle. Both accessible names contain the profile name, so tests address the
@@ -252,8 +262,20 @@ describe('PopupApp — switching profiles', () => {
     expect(screen.queryByRole('dialog', { hidden: true })).toBeNull();
   });
 
-  it('confirms before opening a production profile', async () => {
+  it('opens a production profile in one click by default', async () => {
     await seed(draft({ name: 'Production admin', environment: 'production' }));
+    const send = mockAwsConsoleTab();
+
+    render(<PopupApp />);
+    const user = userEvent.setup();
+    await user.click(await switchButton('Production admin'));
+
+    await waitFor(() => expect(send).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('dialog', { hidden: true })).toBeNull();
+  });
+
+  it('confirms before opening a production profile when the setting is on', async () => {
+    await seedConfirming(draft({ name: 'Production admin', environment: 'production' }));
     const send = mockAwsConsoleTab();
 
     render(<PopupApp />);
@@ -272,7 +294,7 @@ describe('PopupApp — switching profiles', () => {
   });
 
   it('abandons the switch when the confirmation is cancelled', async () => {
-    await seed(draft({ environment: 'production' }));
+    await seedConfirming(draft({ environment: 'production' }));
     const send = mockAwsConsoleTab();
 
     render(<PopupApp />);

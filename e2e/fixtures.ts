@@ -200,7 +200,7 @@ export async function seed(page: Page, options: SeedOptions = {}): Promise<void>
       theme: 'system',
       language: 'system',
       openBehavior: 'new',
-      confirmProduction: true,
+      confirmProduction: false,
       hideAccountIds: false,
       ...options.settings,
     },

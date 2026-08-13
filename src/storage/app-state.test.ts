@@ -339,7 +339,7 @@ describe('updateSettings', () => {
       theme: 'dark',
       language: 'tr',
       hideAccountIds: true,
-      confirmProduction: true,
+      confirmProduction: false,
     });
   });
 
@@ -519,7 +519,7 @@ describe('watchAppState', () => {
   });
 });
 
-describe('access mode migration', () => {
+describe('version 4 migration', () => {
   const LIST_ID = '00000000-0000-4000-8000-000000000001';
   const ISO = '2026-01-01T00:00:00.000Z';
 
@@ -546,9 +546,12 @@ describe('access mode migration', () => {
   }
 
   /** A stored version 3 state, which is what an installed 0.1.3 holds. */
-  async function seedVersion3(profiles: Record<string, unknown>[]): Promise<void> {
+  async function seedVersion3(
+    profiles: Record<string, unknown>[],
+    settingsPatch: Record<string, unknown> = {},
+  ): Promise<void> {
     const current = createDefaultState();
-    const legacySettings: Record<string, unknown> = { ...current.settings };
+    const legacySettings: Record<string, unknown> = { ...current.settings, ...settingsPatch };
     delete legacySettings.accessMode;
     await browser.storage.local.set({
       [STORAGE_KEY]: { ...current, version: 3, profiles, settings: legacySettings },
@@ -595,5 +598,10 @@ describe('access mode migration', () => {
   it('still asks a user who has no profiles yet', async () => {
     await seedVersion3([]);
     expect((await ensureAppState()).settings.accessMode).toBe('unset');
+  });
+
+  it('turns the production confirmation off so every launch is one click', async () => {
+    await seedVersion3([storedProfile({})], { confirmProduction: true });
+    expect((await ensureAppState()).settings.confirmProduction).toBe(false);
   });
 });

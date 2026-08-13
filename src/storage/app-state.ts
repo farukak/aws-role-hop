@@ -101,7 +101,13 @@ function migrateStoredValue(value: unknown): unknown {
     migrated = {
       ...migrated,
       version: 4,
-      settings: { ...migrated.settings, accessMode: deriveAccessMode(migrated.profiles) },
+      settings: {
+        ...migrated.settings,
+        accessMode: deriveAccessMode(migrated.profiles),
+        // Opening a profile is now a single click everywhere. The confirmation is
+        // still available in preferences for anyone who wants it back.
+        confirmProduction: false,
+      },
     };
   }
 

@@ -282,7 +282,7 @@ export function createDefaultState(): AppState {
       theme: 'system',
       language: 'system',
       openBehavior: 'current',
-      confirmProduction: true,
+      confirmProduction: false,
       hideAccountIds: false,
     },
   };

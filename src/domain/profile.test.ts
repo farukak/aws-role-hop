@@ -464,8 +464,8 @@ describe('appStateSchema', () => {
     ).toBe(false);
   });
 
-  it('defaults to confirming production switches', () => {
-    expect(createDefaultState().settings.confirmProduction).toBe(true);
+  it('defaults to a single click, leaving the production confirmation opt-in', () => {
+    expect(createDefaultState().settings.confirmProduction).toBe(false);
   });
 });
 
