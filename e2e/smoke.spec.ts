@@ -26,3 +26,16 @@ test('extension pages avoid Chromium cross-world modulepreload warnings', async 
   await expect(popup.locator('link[rel="modulepreload"]')).toHaveCount(0);
   await expect(options.locator('link[rel="modulepreload"]')).toHaveCount(0);
 });
+
+test('first run asks which access path to use before showing profiles', async ({ popup }) => {
+  await seed(popup, { profiles: SAMPLE_PROFILES, settings: { accessMode: 'unset' } });
+
+  await expect(popup.getByRole('heading', { name: 'How do you use AWS?' })).toBeVisible();
+  await expect(popup.getByRole('listbox', { name: 'AWS profiles' })).toBeHidden();
+  await expect(popup.getByText('Needs access to your AWS access portal')).toBeVisible();
+
+  await popup.getByRole('button', { name: /IAM roles/ }).click();
+
+  await expect(popup.getByRole('listbox', { name: 'AWS profiles' })).toBeVisible();
+  await expect(popup.getByRole('heading', { name: 'How do you use AWS?' })).toBeHidden();
+});
