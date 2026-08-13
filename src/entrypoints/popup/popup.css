@@ -392,3 +392,244 @@ body {
   justify-content: center;
   gap: 8px;
 }
+
+.popup-shell--choice {
+  gap: 14px;
+}
+
+.access-mode-choice__heading h1 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--color-text);
+}
+
+.access-mode-choice__heading p {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.access-mode-choice {
+  display: grid;
+  gap: 10px;
+}
+
+.access-mode-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease;
+}
+
+.access-mode-card:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: translateY(-1px);
+}
+
+.access-mode-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.access-mode-card:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.access-mode-mark {
+  flex: 0 0 auto;
+  border-radius: 12px;
+}
+
+.access-mode-card__copy {
+  display: grid;
+  gap: 3px;
+}
+
+.access-mode-card__copy strong {
+  font-size: 0.94rem;
+  font-weight: 640;
+  color: var(--color-text);
+}
+
+.access-mode-card__copy small {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.access-mode-card__note {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 560;
+  color: var(--color-accent-text);
+}
+
+.access-mode-choice__footnote {
+  margin: 0;
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--color-text-tertiary);
+}
+
+.popup-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-canvas-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+}
+
+.popup-mode-option {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 8px;
+  font: inherit;
+  font-size: 0.79rem;
+  font-weight: 560;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.popup-mode-option[data-selected='true'] {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: var(--shadow-sm);
+}
+
+.popup-mode-option:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.popup-mode-hint {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 11px;
+  font-size: 0.76rem;
+  color: var(--color-text-secondary);
+  background: var(--color-canvas-subtle);
+  border-radius: 10px;
+}
+
+.popup-mode-hint button {
+  flex: 0 0 auto;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-text);
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+.popup-mode-hint button:focus-visible {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: var(--focus-ring);
+}
+
+.portal-scan {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.portal-scan__header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.86rem;
+  color: var(--color-text);
+}
+
+.portal-scan__summary {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.portal-scan__detail {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.portal-scan__list {
+  display: grid;
+  gap: 4px;
+  max-height: 208px;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.portal-scan__list label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+  cursor: pointer;
+  background: var(--color-canvas-subtle);
+  border-radius: 8px;
+}
+
+.portal-scan__list label span {
+  display: grid;
+  gap: 1px;
+}
+
+.portal-scan__list strong {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.portal-scan__list small {
+  font-size: 0.72rem;
+  color: var(--color-text-secondary);
+}
+
+.popup-notice {
+  padding: 8px 11px;
+  font-size: 0.78rem;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+  border-radius: 10px;
+}
+
+.popup-guidance {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-text-tertiary);
+}

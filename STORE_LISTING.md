@@ -111,6 +111,10 @@ Identifies the AWS Console tab from which the user explicitly opened AWS Role Ho
 
 Runs the narrowly scoped switch bridge only on supported AWS Console, Health, and Lightsail origins. The bridge reads only the current destination URL, AWS switch-session metadata, and the ephemeral CSRF value needed for the user-requested native AWS switch. It does not read arbitrary website content, browser history, cookies, or credentials.
 
+#### Optional `scripting` and AWS access portal host access
+
+Requested only when the user starts Identity Center discovery, never at install time. With it, AWS Role Hop runs a single bundled function inside an AWS access portal tab that asks the portal which accounts and permission sets the signed-in user may use, so those profiles do not have to be typed by hand. The lookup is same-origin, reads no cookie or token, and stores only the profiles the user selects. Users can withdraw the permission at any time.
+
 #### Web-accessible resource
 
 `aws-console-bridge.js` is bundled with the extension and exposed only to the supported AWS Console origins so it can call AWS's page-context switch API. It is not remotely hosted code.
@@ -128,6 +132,7 @@ AWS Role Hop handles the following data only to provide its user-facing purpose:
 - user-entered AWS profile and profile-list metadata, stored locally;
 - the current supported AWS Console URL, processed in memory to preserve the destination;
 - AWS switch-session metadata and an ephemeral CSRF value, processed in memory for the requested switch;
+- AWS access portal account names, account IDs, and permission-set names, read only during a user-started discovery and stored only for the profiles the user adds;
 - preferences, favorites, tags, colors, and recent-use timestamps, stored locally.
 
 No data is sent to the developer or any developer-controlled service. The selected switch fields and ephemeral AWS values are sent only to the validated AWS endpoint over HTTPS. Disclose local handling in the Dashboard even though the data is not transmitted to AWS Role Hop's developer. The Dashboard selections, listing, and privacy policy must remain mutually consistent.

@@ -49,6 +49,66 @@ const TURKISH_MESSAGES = {
   'Loading settings': 'Ayarlar yükleniyor',
   'Your experience': 'Deneyimin',
   'Control appearance, navigation, and local data.': 'Görünümü, gezinmeyi ve yerel verileri yönet.',
+  'Access mode': 'Erişim modu',
+  'How do you use AWS?': 'AWS’i nasıl kullanıyorsun?',
+  'Choose the access path AWS Role Hop should open with. You can change it later in settings.':
+    'AWS Role Hop’un hangi erişim yoluyla açılacağını seç. Bunu daha sonra ayarlardan değiştirebilirsin.',
+  'Switch roles from an authenticated AWS Console tab.':
+    'Kimliği doğrulanmış bir AWS Console sekmesinden rol değiştir.',
+  'Open permission sets through your AWS access portal.':
+    'İzin setlerini AWS erişim portalın üzerinden aç.',
+  'AWS Role Hop asks for portal access only when you choose Identity Center.':
+    'AWS Role Hop portal erişimini yalnızca Identity Center’ı seçtiğinde ister.',
+  'Could not save the access mode.': 'Erişim modu kaydedilemedi.',
+  IAM: 'IAM',
+  SSO: 'SSO',
+  'This list also has SSO profiles.': 'Bu listede SSO profilleri de var.',
+  'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
+  'Switch to SSO': 'SSO’ya geç',
+  'Switch to IAM': 'IAM’e geç',
+  'Default IAM': 'Varsayılan IAM',
+  'Default SSO': 'Varsayılan SSO',
+  'Pick an account to open it, or scan the portal again to refresh this list.':
+    'Açmak için bir hesap seç ya da listeyi yenilemek için portalı tekrar tara.',
+  'Open this from an AWS Console tab, then pick a profile to switch roles there.':
+    'Bunu bir AWS Console sekmesinden aç, sonra rol değiştirmek için bir profil seç.',
+  'You are on an AWS access portal.': 'Bir AWS erişim portalındasın.',
+  'Scan this portal': 'Bu portalı tara',
+  'Bring in your SSO accounts': 'SSO hesaplarını içeri al',
+  'AWS Role Hop can ask your AWS access portal which accounts and roles you may use, then keep them here.':
+    'AWS Role Hop, AWS erişim portalına hangi hesap ve rolleri kullanabildiğini sorup bunları burada tutabilir.',
+  'SSO profiles open through your AWS access portal. AWS still verifies your session and access.':
+    'SSO profilleri AWS erişim portalın üzerinden açılır. Oturumunu ve erişimini yine AWS doğrular.',
+  Discover: 'Keşfet',
+  'Find accounts from your AWS access portal': 'AWS erişim portalından hesapları bul',
+  'AWS Role Hop asks the portal which accounts and permission sets you can use, then turns them into profiles.':
+    'AWS Role Hop portala hangi hesapları ve izin setlerini kullanabildiğini sorar, sonra bunları profile dönüştürür.',
+  'Portal access stays optional': 'Portal erişimi isteğe bağlı kalır',
+  'Your browser asks before AWS Role Hop may reach the portal. The lookup runs in a portal tab with your existing session, and no token is ever read or stored.':
+    'AWS Role Hop portala erişmeden önce tarayıcın izin ister. Sorgu mevcut oturumunla bir portal sekmesinde çalışır; hiçbir jeton okunmaz veya saklanmaz.',
+  'Access portal URL': 'Erişim portalı adresi',
+  'Find accounts and roles': 'Hesapları ve rolleri bul',
+  'Searching the access portal…': 'Erişim portalı taranıyor…',
+  'Found {roles} roles across {accounts} accounts.': '{accounts} hesapta {roles} rol bulundu.',
+  'Nothing was found in this portal.': 'Bu portalda bir şey bulunamadı.',
+  'Select all': 'Tümünü seç',
+  'Clear selection': 'Seçimi temizle',
+  'Add discovered profiles to': 'Bulunan profilleri şuraya ekle',
+  'Add selected profiles': 'Seçili profilleri ekle',
+  '{added} added, {skipped} already existed.': '{added} eklendi, {skipped} zaten vardı.',
+  'The discovered profiles could not be added.': 'Bulunan profiller eklenemedi.',
+  'Portal access is needed before AWS Role Hop can read your accounts.':
+    'AWS Role Hop hesaplarını okuyabilmek için portal erişimi gerekir.',
+  'The access portal tab could not be opened.': 'Erişim portalı sekmesi açılamadı.',
+  'Sign in to the access portal in a tab, then try again.':
+    'Portalı bir sekmede aç ve giriş yap, sonra tekrar dene.',
+  'The access portal could not be read.': 'Erişim portalı okunamadı.',
+  'Choose which AWS access path AWS Role Hop is set up for.':
+    'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
+  'IAM roles': 'IAM rolleri',
+  'Switch inside the AWS Console': 'AWS Console içinde geçiş yap',
+  'IAM Identity Center': 'IAM Identity Center',
+  'Needs access to your AWS access portal': 'AWS erişim portalına erişim gerektirir',
   Appearance: 'Görünüm',
   'Use your browser preference or choose a fixed theme.':
     'Tarayıcı tercihini kullan veya sabit bir tema seç.',

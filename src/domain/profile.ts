@@ -10,6 +10,9 @@ export const PORTAL_URL_MAX_LENGTH = 2_048;
 export const REGION_MAX_LENGTH = 32;
 export const TAG_MAX_LENGTH = 24;
 export const DEFAULT_PROFILE_LIST_ID = '00000000-0000-4000-8000-000000000001';
+export const DEFAULT_SSO_PROFILE_LIST_ID = '00000000-0000-4000-8000-000000000002';
+export const DEFAULT_IAM_LIST_NAME = 'Default IAM';
+export const DEFAULT_SSO_LIST_NAME = 'Default SSO';
 export const PROFILE_COLOR_IDS = [
   'rose',
   'peach',
@@ -100,7 +103,7 @@ const regionSchema = z.string().check(
   z.regex(/^[a-z0-9]+(?:-[a-z0-9]+)+-\d$/, 'Enter a region such as us-east-1.'),
 );
 
-function isAllowedPortalUrl(value: string): boolean {
+export function isAllowedPortalUrl(value: string): boolean {
   try {
     const url = new URL(value);
     const hostname = url.hostname.toLowerCase();
@@ -109,10 +112,15 @@ function isAllowedPortalUrl(value: string): boolean {
       hostname.endsWith('.awsapps.cn') ||
       hostname.endsWith('.app.aws');
 
+    // Older portals live under /start; the current ones are served from the root
+    // of their own host. Both answer the same #/console shortcut.
+    const path = url.pathname.replace(/\/+$/, '');
+    const allowedPath = path === '' || path === '/start';
+
     return (
       url.protocol === 'https:' &&
       allowedHost &&
-      url.pathname.replace(/\/+$/, '') === '/start' &&
+      allowedPath &&
       url.username === '' &&
       url.password === '' &&
       url.port === ''
@@ -128,7 +136,7 @@ const portalUrlSchema = z
     z.trim(),
     z.minLength(1, 'AWS access portal URL is required.'),
     z.maxLength(PORTAL_URL_MAX_LENGTH, 'AWS access portal URL is too long.'),
-    z.refine(isAllowedPortalUrl, 'Use a valid HTTPS AWS access portal URL ending in /start.'),
+    z.refine(isAllowedPortalUrl, 'Use a valid HTTPS AWS access portal URL.'),
   );
 
 const tagSchema = z
@@ -181,7 +189,15 @@ const ssoProfileSchema = z.extend(ssoProfileDraftSchema, persistedShape);
 
 export const profileSchema = z.discriminatedUnion('type', [roleProfileSchema, ssoProfileSchema]);
 
+/**
+ * Which AWS access path the interface is set up for. `unset` means the choice has
+ * not been made yet, which is what triggers the first-run question.
+ */
+export const ACCESS_MODES = ['unset', 'iam', 'sso'] as const;
+export type AccessMode = (typeof ACCESS_MODES)[number];
+
 export const settingsSchema = z.strictObject({
+  accessMode: z.enum(ACCESS_MODES),
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['system', 'en', 'tr']),
   openBehavior: z.enum(['current', 'new']),
@@ -208,7 +224,7 @@ export const profileListSchema = z.strictObject({
 
 export const appStateSchema = z
   .strictObject({
-    version: z.literal(3),
+    version: z.literal(5),
     profiles: z.array(profileSchema).check(z.maxLength(PROFILE_LIMIT)),
     profileLists: z
       .array(profileListSchema)
@@ -262,18 +278,44 @@ export type ProfileList = z.infer<typeof profileListSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AppState = z.infer<typeof appStateSchema>;
 
+/** Each access path keeps its own list, so IAM and SSO profiles never mix by default. */
+export function defaultListIdForMode(mode: AccessMode): string {
+  return mode === 'sso' ? DEFAULT_SSO_PROFILE_LIST_ID : DEFAULT_PROFILE_LIST_ID;
+}
+
+export function defaultListNameForMode(mode: AccessMode): string {
+  return mode === 'sso' ? DEFAULT_SSO_LIST_NAME : DEFAULT_IAM_LIST_NAME;
+}
+
+/** Built-in list names are translated; a list the user named is shown verbatim. */
+export function builtInListName(
+  list: ProfileList,
+): typeof DEFAULT_IAM_LIST_NAME | typeof DEFAULT_SSO_LIST_NAME | null {
+  if (list.id === DEFAULT_PROFILE_LIST_ID && list.name === DEFAULT_IAM_LIST_NAME) {
+    return DEFAULT_IAM_LIST_NAME;
+  }
+  if (list.id === DEFAULT_SSO_PROFILE_LIST_ID && list.name === DEFAULT_SSO_LIST_NAME) {
+    return DEFAULT_SSO_LIST_NAME;
+  }
+  return null;
+}
+
 export function createDefaultState(): AppState {
   return {
-    version: 3,
+    version: 5,
     profiles: [],
-    profileLists: [{ id: DEFAULT_PROFILE_LIST_ID, name: 'Default' }],
+    profileLists: [
+      { id: DEFAULT_PROFILE_LIST_ID, name: DEFAULT_IAM_LIST_NAME },
+      { id: DEFAULT_SSO_PROFILE_LIST_ID, name: DEFAULT_SSO_LIST_NAME },
+    ],
     activeProfileListId: DEFAULT_PROFILE_LIST_ID,
     defaultProfileListId: DEFAULT_PROFILE_LIST_ID,
     settings: {
+      accessMode: 'unset',
       theme: 'system',
       language: 'system',
       openBehavior: 'current',
-      confirmProduction: true,
+      confirmProduction: false,
       hideAccountIds: false,
     },
   };

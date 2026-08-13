@@ -15,6 +15,8 @@ beforeEach(async () => {
 describe('options deep links', () => {
   it.each([
     ['#import', 'import'],
+    ['#discover', 'discover'],
+    ['#discover?portal=https://example.awsapps.com/start', 'discover'],
     ['#preferences', 'preferences'],
     ['#whats-new', 'whats-new'],
     ['#profiles', 'profiles'],
@@ -62,5 +64,27 @@ describe('options deep links', () => {
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toContain('noopener');
     expect(link.getAttribute('rel')).toContain('noreferrer');
+  });
+});
+
+describe('options navigation follows the access mode', () => {
+  async function seedMode(accessMode: 'iam' | 'sso'): Promise<void> {
+    const base = createDefaultState();
+    await saveAppState({ ...base, settings: { ...base.settings, accessMode } });
+  }
+
+  it('hides discovery while IAM mode is active', async () => {
+    await seedMode('iam');
+    render(<OptionsApp />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Import' })).toBeDefined());
+    expect(screen.queryByRole('button', { name: 'Discover' })).toBeNull();
+  });
+
+  it('offers discovery in Identity Center mode', async () => {
+    await seedMode('sso');
+    render(<OptionsApp />);
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Discover' })).toBeDefined());
   });
 });

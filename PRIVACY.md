@@ -34,6 +34,8 @@ Backup files are created only after a user requests an export. They contain loca
 
 AWS Role Hop requests `storage` for profiles, profile lists, and preferences; `activeTab` to address the Console tab from which the user opened the popup; and host access limited to supported AWS Console origins so its role-switch bridge can run there. It does not request broad `tabs`, browsing history, cookies, identity, or credential permissions and does not run on arbitrary websites.
 
+Access to an AWS access portal origin is **optional** and is never requested at install time. The browser asks for it only when the user starts Identity Center discovery, and it can be withdrawn at any time in the browser's extension settings. Discovery then asks the portal which accounts and permission sets the signed-in user may use. That lookup runs inside a portal tab so the browser attaches the portal's own session; AWS Role Hop does not read, copy, or store the portal session, its cookies, or any token. Only the account names, account IDs, and permission-set names the user chooses to add become local profiles.
+
 ## Data deletion
 
 Users can remove individual profiles or profile lists, reset all AWS Role Hop data from Preferences, or uninstall the extension. Uninstall behavior is controlled by the browser.

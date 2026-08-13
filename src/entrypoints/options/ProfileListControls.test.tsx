@@ -29,7 +29,7 @@ describe('ProfileListControls', () => {
   it('explains active and default lists without duplicating the default label', async () => {
     await setup();
     const selector = screen.getByRole('combobox', { name: 'Active profile list' });
-    expect(within(selector).getByRole('option').textContent).toBe('Default');
+    expect(within(selector).getAllByRole('option')[0]?.textContent).toBe('Default IAM');
     expect(screen.getByText('Default list')).toBeDefined();
     expect(screen.getByText(/default list is preselected for imports/i)).toBeDefined();
   });
@@ -140,7 +140,8 @@ describe('ProfileListControls', () => {
   });
 
   it('disables deletion when only one list remains', async () => {
-    await setup();
+    const single = createDefaultState();
+    await setup({ ...single, profileLists: [single.profileLists[0]!] });
     expect(screen.getByRole('button', { name: /^Delete$/ })).toHaveProperty('disabled', true);
   });
 });

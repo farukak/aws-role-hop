@@ -213,7 +213,7 @@ test('exports, resets, and restores a local backup', async ({ options }) => {
   const downloadPath = await download.path();
   if (!downloadPath) throw new Error('Playwright did not retain the backup download.');
   const backup = await readFile(downloadPath);
-  expect(JSON.parse(backup.toString())).toMatchObject({ version: 3, profiles: { length: 3 } });
+  expect(JSON.parse(backup.toString())).toMatchObject({ version: 5, profiles: { length: 3 } });
 
   await options.getByRole('button', { name: 'Reset all data' }).click();
   await options.getByRole('dialog').getByRole('button', { name: 'Reset data' }).click();

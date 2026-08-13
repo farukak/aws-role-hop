@@ -69,6 +69,8 @@ test('production requires confirmation and cancellation opens no tab', async ({
   context,
   popup,
 }) => {
+  // Launching is a single click by default, so this journey turns the confirmation on.
+  await seed(popup, { profiles: SAMPLE_PROFILES, settings: { confirmProduction: true } });
   await popup.getByRole('combobox', { name: 'Search profiles' }).fill('production');
   await popup.getByRole('listbox', { name: 'AWS profiles' }).getByRole('option').click();
 

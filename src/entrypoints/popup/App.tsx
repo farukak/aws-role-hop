@@ -4,6 +4,7 @@ import {
   FileInput,
   Layers3,
   Plus,
+  Radar,
   Search,
   Settings,
   ShieldAlert,
@@ -12,6 +13,10 @@ import {
   X,
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
+import { AccessModeChooser } from './AccessModeChooser';
+import { PortalScan } from './PortalScan';
+import { AccessModeMark, type AccessModeChoice } from '../../components/AccessModeMark';
+import { ChoiceGroup } from '../../components/ChoiceGroup';
 import { Brand } from '../../components/Brand';
 import {
   EnvironmentBadge,
@@ -22,12 +27,24 @@ import {
 } from '../../components/ProfileVisual';
 import { StatusCard } from '../../components/StatusCard';
 import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
-import { DEFAULT_PROFILE_LIST_ID, sortProfiles, type Profile } from '../../domain/profile';
+import {
+  builtInListName,
+  isAllowedPortalUrl,
+  normalizePortalUrl,
+  sortProfiles,
+  type Profile,
+} from '../../domain/profile';
 import { searchProfiles } from '../../domain/search';
 import { useAppState, useTheme } from '../../hooks/useAppState';
 import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
 import { useI18n, type Message } from '../../i18n';
-import { markProfileUsed, setActiveProfileList, toggleFavorite } from '../../storage/app-state';
+import {
+  markProfileUsed,
+  setAccessMode,
+  setActiveProfileList,
+  toggleFavorite,
+  updateSettings,
+} from '../../storage/app-state';
 
 const SWITCH_FAILURE_MESSAGES: Record<AwsSwitchFailureCode, Message> = {
   unauthorized:
@@ -48,13 +65,41 @@ export function PopupApp() {
   const [busyProfileId, setBusyProfileId] = useState<string | null>(null);
   const [pendingProduction, setPendingProduction] = useState<Profile | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingMode, setPendingMode] = useState<AccessModeChoice | null>(null);
+  const [portalTabUrl, setPortalTabUrl] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useTheme(state?.settings.theme);
 
-  const listProfiles = useMemo(
+  // `activeTab` reveals the tab the popup was opened from, which is how a portal
+  // can be offered for scanning without asking for standing tab access.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [active] = await browser.tabs.query({ active: true, currentWindow: true });
+        const url = typeof active?.url === 'string' ? active.url : '';
+        if (url !== '' && isAllowedPortalUrl(url)) setPortalTabUrl(normalizePortalUrl(url));
+      } catch {
+        // The scan shortcut is a convenience; the popup works without it.
+      }
+    })();
+  }, []);
+
+  const accessMode = state?.settings.accessMode ?? 'unset';
+  const activeListProfiles = useMemo(
     () => state?.profiles.filter(({ listId }) => listId === state.activeProfileListId) ?? [],
     [state],
   );
+  const listProfiles = useMemo(
+    () =>
+      activeListProfiles.filter((profile) =>
+        accessMode === 'sso' ? profile.type === 'sso' : profile.type === 'role',
+      ),
+    [activeListProfiles, accessMode],
+  );
+  /** What the active list holds for the other access path, so nothing disappears silently. */
+  const otherModeCount = activeListProfiles.length - listProfiles.length;
   const profiles = useMemo(
     () => searchProfiles(sortProfiles(listProfiles), query),
     [listProfiles, query],
@@ -89,6 +134,38 @@ export function PopupApp() {
       return;
     }
     void switchToProfile(profile);
+  }
+
+  async function chooseAccessMode(mode: AccessModeChoice): Promise<void> {
+    setActionError(null);
+    setPendingMode(mode);
+    try {
+      await setAccessMode(mode);
+      setQuery('');
+      setSelectedIndex(0);
+    } catch (modeError: unknown) {
+      setActionError(
+        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
+      );
+      setPendingMode(null);
+    }
+  }
+
+  /**
+   * Reveals the other access path without leaving the list the user is looking at,
+   * which is the whole point of the hint that offers it.
+   */
+  async function revealOtherMode(mode: AccessModeChoice): Promise<void> {
+    setActionError(null);
+    try {
+      await updateSettings({ accessMode: mode });
+      setQuery('');
+      setSelectedIndex(0);
+    } catch (modeError: unknown) {
+      setActionError(
+        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
+      );
+    }
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
@@ -152,6 +229,20 @@ export function PopupApp() {
     }
   }
 
+  async function openDiscovery(): Promise<void> {
+    setActionError(null);
+    try {
+      const suffix = portalTabUrl === null ? '' : `?portal=${encodeURIComponent(portalTabUrl)}`;
+      const url = browser.runtime.getURL(`/options.html#discover${suffix}`);
+      await browser.tabs.create({ url });
+      window.close();
+    } catch (discoveryError: unknown) {
+      setActionError(
+        discoveryError instanceof Error ? discoveryError.message : t('Could not open settings.'),
+      );
+    }
+  }
+
   async function openOptions(): Promise<void> {
     setActionError(null);
     try {
@@ -181,6 +272,16 @@ export function PopupApp() {
     );
   }
 
+  if (state.settings.accessMode === 'unset') {
+    return (
+      <AccessModeChooser
+        onChoose={(mode) => void chooseAccessMode(mode)}
+        busy={pendingMode}
+        error={actionError}
+      />
+    );
+  }
+
   return (
     <main className="popup-shell">
       <h1 className="visually-hidden">{t('AWS Role Hop profiles')}</h1>
@@ -196,6 +297,27 @@ export function PopupApp() {
         </button>
       </header>
 
+      <ChoiceGroup className="popup-mode-switch" label={t('Access mode')}>
+        <ModeOption
+          mode="iam"
+          label={t('IAM')}
+          selected={accessMode === 'iam'}
+          onSelect={() => void chooseAccessMode('iam')}
+        />
+        <ModeOption
+          mode="sso"
+          label={t('SSO')}
+          selected={accessMode === 'sso'}
+          onSelect={() => void chooseAccessMode('sso')}
+        />
+      </ChoiceGroup>
+
+      <p className="popup-guidance">
+        {accessMode === 'sso'
+          ? t('Pick an account to open it, or scan the portal again to refresh this list.')
+          : t('Open this from an AWS Console tab, then pick a profile to switch roles there.')}
+      </p>
+
       <label className="popup-list-picker">
         <Layers3 size={15} strokeWidth={1.8} aria-hidden="true" />
         <span className="visually-hidden">{t('Profile list')}</span>
@@ -205,12 +327,12 @@ export function PopupApp() {
           aria-label={t('Profile list')}
         >
           {state.profileLists.map((list) => {
-            const builtInDefault = list.id === DEFAULT_PROFILE_LIST_ID && list.name === 'Default';
-            const name = builtInDefault ? t('Default') : list.name;
+            const builtIn = builtInListName(list);
+            const name = builtIn === null ? list.name : t(builtIn);
             return (
               <option key={list.id} value={list.id}>
                 {name}
-                {list.id === state.defaultProfileListId && !builtInDefault
+                {list.id === state.defaultProfileListId && builtIn === null
                   ? ` — ${t('Default')}`
                   : ''}
               </option>
@@ -269,13 +391,44 @@ export function PopupApp() {
           : t('{count} profiles available.', { count: listProfiles.length })}
       </p>
 
+      {accessMode === 'sso' &&
+        portalTabUrl !== null &&
+        (scanning ? (
+          <PortalScan
+            portalUrl={portalTabUrl}
+            listId={state.activeProfileListId}
+            onAdded={(added, skipped) => {
+              setScanning(false);
+              setNotice(t('{added} added, {skipped} already existed.', { added, skipped }));
+            }}
+            onClose={() => setScanning(false)}
+          />
+        ) : (
+          <div className="popup-mode-hint">
+            <span>{t('You are on an AWS access portal.')}</span>
+            <button type="button" onClick={() => setScanning(true)}>
+              {t('Scan this portal')}
+            </button>
+          </div>
+        ))}
+
+      {notice !== null && (
+        <div className="popup-notice" role="status">
+          {notice}
+        </div>
+      )}
+
       {listProfiles.length > 0 && (
         <div className="popup-handoff-note">
           <ShieldCheck size={14} strokeWidth={1.8} aria-hidden="true" />
           <span>
-            {t(
-              "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.",
-            )}
+            {accessMode === 'sso'
+              ? t(
+                  'SSO profiles open through your AWS access portal. AWS still verifies your session and access.',
+                )
+              : t(
+                  "Open AWS Role Hop from an authenticated AWS Console tab. AWS Role Hop submits AWS's native switch request directly; AWS still verifies your session and access.",
+                )}
           </span>
         </div>
       )}
@@ -286,25 +439,77 @@ export function PopupApp() {
         </div>
       )}
 
+      {otherModeCount > 0 && (
+        <div className="popup-mode-hint">
+          <span>
+            {accessMode === 'sso'
+              ? t('This list also has IAM profiles.')
+              : t('This list also has SSO profiles.')}
+          </span>
+          <button
+            type="button"
+            onClick={() => void revealOtherMode(accessMode === 'sso' ? 'iam' : 'sso')}
+          >
+            {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to SSO')}
+          </button>
+        </div>
+      )}
+
       {listProfiles.length === 0 ? (
-        <StatusCard
-          title={t('Add your first profile')}
-          description={t(
-            'Create an IAM role or Identity Center shortcut. Everything stays in this browser.',
-          )}
-          action={
-            <div className="popup-empty-actions">
-              <button className="primary-button" type="button" onClick={() => void openOptions()}>
-                <Plus size={16} aria-hidden="true" />
-                {t('Add profile')}
-              </button>
-              <button className="secondary-button" type="button" onClick={() => void openImport()}>
-                <FileInput size={16} aria-hidden="true" />
-                {t('Import profiles')}
-              </button>
-            </div>
-          }
-        />
+        accessMode === 'sso' ? (
+          <StatusCard
+            title={t('Bring in your SSO accounts')}
+            description={t(
+              'AWS Role Hop can ask your AWS access portal which accounts and roles you may use, then keep them here.',
+            )}
+            action={
+              <div className="popup-empty-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={() => {
+                    if (portalTabUrl === null) void openDiscovery();
+                    else setScanning(true);
+                  }}
+                >
+                  <Radar size={16} aria-hidden="true" />
+                  {portalTabUrl === null ? t('Find accounts and roles') : t('Scan this portal')}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => void openOptions()}
+                >
+                  <Plus size={16} aria-hidden="true" />
+                  {t('Add profile')}
+                </button>
+              </div>
+            }
+          />
+        ) : (
+          <StatusCard
+            title={t('Add your first profile')}
+            description={t(
+              'Create an IAM role or Identity Center shortcut. Everything stays in this browser.',
+            )}
+            action={
+              <div className="popup-empty-actions">
+                <button className="primary-button" type="button" onClick={() => void openOptions()}>
+                  <Plus size={16} aria-hidden="true" />
+                  {t('Add profile')}
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => void openImport()}
+                >
+                  <FileInput size={16} aria-hidden="true" />
+                  {t('Import profiles')}
+                </button>
+              </div>
+            }
+          />
+        )
       ) : profiles.length === 0 ? (
         <StatusCard
           title={t('No matching profiles')}
@@ -405,6 +610,30 @@ export function PopupApp() {
         />
       )}
     </main>
+  );
+}
+
+interface ModeOptionProps {
+  mode: AccessModeChoice;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+function ModeOption({ mode, label, selected, onSelect }: ModeOptionProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      tabIndex={selected ? 0 : -1}
+      className="popup-mode-option"
+      data-selected={selected || undefined}
+      onClick={onSelect}
+    >
+      <AccessModeMark mode={mode} size={16} />
+      {label}
+    </button>
   );
 }
 

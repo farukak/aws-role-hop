@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { FolderPlus, Pencil, Star, Trash2 } from 'lucide-react';
-import { DEFAULT_PROFILE_LIST_ID, type AppState, type ProfileList } from '../../domain/profile';
+import { builtInListName, type AppState, type ProfileList } from '../../domain/profile';
 import { useI18n } from '../../i18n';
 import {
   createProfileList,
@@ -81,9 +81,8 @@ export function ProfileListControls({ state, notify, onListChange }: ProfileList
               aria-label={t('Active profile list')}
             >
               {state.profileLists.map((list) => {
-                const builtInDefault =
-                  list.id === DEFAULT_PROFILE_LIST_ID && list.name === 'Default';
-                const name = builtInDefault ? t('Default') : list.name;
+                const builtInDefault = builtInListName(list);
+                const name = builtInDefault === null ? list.name : t(builtInDefault);
                 return (
                   <option key={list.id} value={list.id}>
                     {name}
