@@ -8,6 +8,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    version: '0.1.3',
+    date: '2026-08-13',
+    highlights: [
+      'Switch roles in AWS multi-session windows without losing the session you signed in with.',
+      'See which profiles already exist or reuse a name before an import runs.',
+      'Load a saved profile list back into the import editor to review or extend it.',
+      'Read a clear explanation when AWS refuses a role switch.',
+    ],
+  },
+  {
     version: '0.1.2',
     date: '2026-08-09',
     highlights: [

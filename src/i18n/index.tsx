@@ -336,6 +336,14 @@ const TURKISH_MESSAGES = {
   'Back to preferences': 'Tercihlere dön',
   'View full changelog on GitHub': 'Tüm değişiklik günlüğünü GitHub’da görüntüle',
   'Built by Faruk AK on GitHub': 'GitHub’da Faruk AK tarafından geliştirildi',
+  'Switch roles in AWS multi-session windows without losing the session you signed in with.':
+    'AWS multi-session pencerelerinde, giriş yaptığın oturumu kaybetmeden rol değiştir.',
+  'See which profiles already exist or reuse a name before an import runs.':
+    'İçe aktarma başlamadan önce hangi profillerin zaten var olduğunu veya bir adı yeniden kullandığını gör.',
+  'Load a saved profile list back into the import editor to review or extend it.':
+    'Kayıtlı bir profil listesini incelemek veya genişletmek için içe aktarma editörüne geri yükle.',
+  'Read a clear explanation when AWS refuses a role switch.':
+    'AWS bir rol geçişini reddettiğinde net bir açıklama oku.',
   'Choose and persist one of eight pastel colors when adding or editing a profile.':
     'Profil eklerken veya düzenlerken sekiz pastel renkten birini seç ve kalıcı olarak sakla.',
   'Return a profile to automatic color assignment from the accessible color picker.':
