@@ -19,19 +19,6 @@ type AwsGlobals = typeof globalThis & {
   AWSC?: { Auth?: { getMbtc?: () => unknown } };
 };
 
-/**
- * The Console mints its request token lazily, and AWS's own multi-session switch
- * always reads it first. Read it here too and discard the value: skipping it
- * leaves the session-scoped endpoint without a minted token.
- */
-async function primeAwsConsoleToken(): Promise<void> {
-  try {
-    await Promise.resolve((globalThis as AwsGlobals).AWSC?.Auth?.getMbtc?.());
-  } catch {
-    // A missing or failing accessor must not stop the switch attempt itself.
-  }
-}
-
 export default defineUnlistedScript(() => {
   const bridge = document.getElementById(BRIDGE_ID);
   if (!bridge || bridge.dataset.rolehopReady === 'true') return;
@@ -63,8 +50,6 @@ export default defineUnlistedScript(() => {
             );
           }
           const endpoint = buildAwsSwitchEndpoint(request, metadata);
-
-          await primeAwsConsoleToken();
 
           const controller = new AbortController();
           const timeout = window.setTimeout(() => controller.abort(), MULTI_SESSION_TIMEOUT_MS);
