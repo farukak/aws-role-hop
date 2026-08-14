@@ -3,7 +3,7 @@
     "message": "AWS Role Hop"
   },
   "extensionDescription": {
-    "message": "AWS Console rollerini ve Identity Center profillerini özel, yalnızca yerel listelerden açın."
+    "message": "IAM rollerini değiştir ve AWS SSO hesaplarını tek tıkla aç; özel, yalnızca yerel profil listeleriyle."
   },
   "openExtension": {
     "message": "AWS Role Hop'u aç"

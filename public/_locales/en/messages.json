@@ -3,7 +3,7 @@
     "message": "AWS Role Hop"
   },
   "extensionDescription": {
-    "message": "Launch AWS Console roles and Identity Center profiles from private, local-only lists."
+    "message": "Switch IAM roles and open AWS SSO accounts in one click, from private local-only profile lists."
   },
   "openExtension": {
     "message": "Open AWS Role Hop"
