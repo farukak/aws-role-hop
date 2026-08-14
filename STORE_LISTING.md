@@ -11,9 +11,9 @@ Before each submission:
 3. Run a full `npm audit --audit-level=high` and review any documented development-tool exceptions before release.
 4. Test the unpacked Chrome build from `.output/chrome-mv3` in a clean browser profile.
 5. Verify both standard and AWS multi-session role switching, including two consecutive profile switches.
-6. Run `npm run zip:chrome` only after all source changes and checks are complete.
-7. Confirm the ZIP manifest version matches `package.json` and the intended release tag.
-8. Upload the Chrome ZIP from `.output/`; generated packages are not committed.
+6. Tag the release so the workflow builds the packages, then verify them against the published `SHA256SUMS`.
+7. Confirm the manifest inside the downloaded ZIP reports the intended version and the expected permissions.
+8. Upload that exact release ZIP without repacking it; generated packages are not committed.
 
 ## Known upstream development-tool advisory
 
@@ -29,23 +29,34 @@ AWS Role Hop
 
 ### Summary
 
-Launch AWS Console roles and Identity Center profiles from private, local-only lists.
+Switch IAM roles and open AWS SSO accounts in one click. Private, local-only profile lists with no credentials and no telemetry.
 
 ### Detailed description
 
-AWS Role Hop is a private profile launcher for the AWS Management Console. It keeps IAM roles and IAM Identity Center permission sets searchable in local browser storage and opens them without storing AWS credentials.
+AWS Role Hop is a private profile launcher and role switcher for the AWS Management Console. It keeps IAM roles and AWS IAM Identity Center (AWS SSO) permission sets searchable in local browser storage and opens them in one click, without ever storing AWS credentials.
+
+Pick your access path once, and change it whenever you want:
+
+- IAM roles: switch roles straight from the AWS Console tab you are signed in to, using AWS's own switch-role request. No intermediate page.
+- SSO: open account and permission-set shortcuts through your AWS access portal.
 
 Key features:
 
-- Switch IAM roles directly from an authenticated AWS Console tab.
-- Open IAM Identity Center account and permission-set shortcuts.
-- Organize profiles into named lists with favorites, tags, environments, landing regions, and automatic or manually selected pastel colors.
+- One click opens any profile, with an optional extra confirmation for production accounts.
+- Discovery reads the accounts and permission sets your AWS access portal offers and turns them into profiles, so nothing has to be typed by hand. Your browser asks for access to the portal only when you start discovery, and you can withdraw it at any time.
+- Scan the portal straight from the popup while you are on it.
+- Separate default lists for IAM and SSO, so the two access paths never mix.
+- Keyboard-first fuzzy search across profile names, account IDs, roles, environments, and tags.
+- Named profile lists with favorites, tags, environments, landing regions, account-ID masking, and automatic or manually chosen pastel colors.
 - Import AWS config and Organizations JSON with live validation and syntax highlighting.
-- Ignore access keys, secret keys, session tokens, credential processes, and Organizations email addresses during import.
-- Export and restore local profile backups.
-- Use English or Turkish interfaces with light, dark, and system themes.
+- Access keys, secret keys, session tokens, credential processes, and Organizations email addresses are ignored during import.
+- Export and restore local backups.
+- English and Turkish interfaces with light, dark, and system themes.
+- Standard AWS, AWS GovCloud (US), and AWS China partitions.
 
-AWS Role Hop has no analytics, telemetry, advertising, account service, backend, or remotely hosted code. AWS authenticates and authorizes every transition. AWS Role Hop is independent and is not affiliated with, endorsed by, or sponsored by Amazon Web Services.
+AWS Role Hop has no analytics, telemetry, advertising, account service, backend, or remotely hosted code, and nothing leaves your browser. AWS authenticates and authorizes every transition; AWS Role Hop cannot grant access that AWS has not already given you.
+
+AWS Role Hop is independent and is not affiliated with, endorsed by, or sponsored by Amazon Web Services.
 
 ### Category
 
@@ -73,29 +84,40 @@ AWS Role Hop
 
 ### Kısa açıklama
 
-AWS Console rollerini ve Identity Center profillerini özel, yalnızca yerel listelerden açın.
+IAM rollerini değiştir, AWS SSO hesaplarını tek tıkla aç. Özel, yalnızca yerel profil listeleri; kimlik bilgisi saklanmaz.
 
 ### Ayrıntılı açıklama
 
-AWS Role Hop, AWS Management Console için özel bir profil başlatıcısıdır. IAM rollerini ve IAM Identity Center izin setlerini tarayıcının yerel depolamasında aranabilir tutar ve AWS kimlik bilgilerini saklamadan açar.
+AWS Role Hop, AWS Management Console için özel bir profil başlatıcısı ve rol değiştiricisidir. IAM rollerini ve AWS IAM Identity Center (AWS SSO) izin setlerini tarayıcının yerel depolamasında aranabilir tutar ve AWS kimlik bilgilerini hiç saklamadan tek tıkla açar.
+
+Erişim yolunu bir kez seç, istediğin zaman değiştir:
+
+- IAM rolleri: oturum açtığın AWS Console sekmesinden, AWS'nin kendi rol değiştirme isteğiyle doğrudan geçiş. Araya giren bir sayfa yok.
+- SSO: hesap ve izin seti kısayollarını AWS erişim portalın üzerinden açma.
 
 Başlıca özellikler:
 
-- Kimliği doğrulanmış AWS Console sekmesinden IAM rollerine doğrudan geçiş.
-- IAM Identity Center hesap ve izin seti kısayollarını açma.
-- Profilleri adlandırılmış listeler, favoriler, etiketler, ortamlar, açılış bölgeleri ve otomatik veya elle seçilen pastel renklerle düzenleme.
+- Her profil tek tıkla açılır; üretim hesapları için ek onay isteğe bağlıdır.
+- Keşif, AWS erişim portalının sunduğu hesapları ve izin setlerini okuyup profile dönüştürür; elle yazmak gerekmez. Tarayıcın portala erişimi yalnızca keşfi başlattığında ister, izni istediğin zaman geri alabilirsin.
+- Portaldayken taramayı doğrudan açılır pencereden yap.
+- IAM ve SSO için ayrı varsayılan listeler; iki erişim yolu hiç karışmaz.
+- Profil adları, hesap kimlikleri, roller, ortamlar ve etiketler arasında klavye öncelikli esnek arama.
+- Adlandırılmış profil listeleri; favoriler, etiketler, ortamlar, açılış bölgeleri, hesap kimliği maskeleme ve otomatik veya elle seçilen pastel renkler.
 - AWS config ve Organizations JSON verilerini canlı doğrulama ve sözdizimi renklendirmeyle içe aktarma.
-- İçe aktarma sırasında erişim anahtarlarını, gizli anahtarları, oturum token'larını, credential process alanlarını ve Organizations e-posta adreslerini yok sayma.
-- Yerel profil yedeklerini dışa ve içe aktarma.
-- Açık, koyu ve sistem temalarıyla İngilizce veya Türkçe arayüz.
+- İçe aktarmada erişim anahtarları, gizli anahtarlar, oturum token'ları, credential process alanları ve Organizations e-posta adresleri yok sayılır.
+- Yerel yedekleri dışa ve içe aktarma.
+- Açık, koyu ve sistem temalarıyla İngilizce ve Türkçe arayüz.
+- Standart AWS, AWS GovCloud (US) ve AWS China bölmeleri.
 
-AWS Role Hop analiz, telemetri, reklam, hesap hizmeti, backend veya uzaktan barındırılan kod içermez. Her geçişin kimlik doğrulamasını ve yetkilendirmesini AWS yapar. AWS Role Hop bağımsız bir projedir; Amazon Web Services ile bağlantılı değildir ve AWS tarafından desteklenmez veya onaylanmaz.
+AWS Role Hop analiz, telemetri, reklam, hesap hizmeti, backend veya uzaktan barındırılan kod içermez; hiçbir veri tarayıcından çıkmaz. Her geçişin kimlik doğrulamasını ve yetkilendirmesini AWS yapar; AWS Role Hop, AWS'nin sana zaten vermediği bir erişimi veremez.
+
+AWS Role Hop bağımsız bir projedir; Amazon Web Services ile bağlantılı değildir ve AWS tarafından desteklenmez veya onaylanmaz.
 
 ## Privacy practices
 
 ### Single purpose
 
-AWS Role Hop lets users store and search AWS role and Identity Center profile metadata locally, then launch the selected profile through AWS's authenticated Console or access portal.
+AWS Role Hop lets users store and search AWS role and Identity Center profile metadata locally, then launch the selected profile through AWS's authenticated Console or access portal. Reading the accounts and permission sets a user's own access portal offers serves the same purpose: it fills those local profiles without manual entry.
 
 ### Permission justifications
 
@@ -145,20 +167,21 @@ AWS Role Hop does not include or require an AWS Role Hop account. IAM switching 
 
 Tests that require no AWS credentials:
 
-1. Open AWS Role Hop's options page.
-2. Create IAM-role and Identity Center profiles with non-sensitive test metadata.
-3. Create, rename, activate, and delete profile lists.
-4. Paste sample AWS config data and verify live syntax highlighting, credential-field warnings, direct import, and inline list creation.
-5. Export a local backup, reset local data, and restore the backup.
-6. Change language and theme preferences.
+1. Open the popup on a fresh profile. It asks whether you reach AWS through IAM roles or SSO; either choice can be changed later in Preferences or from the switcher in the popup.
+2. Open AWS Role Hop's options page.
+3. Create IAM-role and Identity Center profiles with non-sensitive test metadata.
+4. Create, rename, activate, and delete profile lists. IAM and SSO each start with their own default list.
+5. Paste sample AWS config data and verify live syntax highlighting, credential-field warnings, direct import, and inline list creation.
+6. Choose SSO and open **Discover**. The screen states that the browser will ask for access to your own AWS access portal before anything is read. Reaching a real portal needs a reviewer-owned Identity Center instance; without one, the screen, its disclosure, and the refusal path remain fully reviewable.
+7. Export a local backup, reset local data, and restore the backup.
+8. Change language and theme preferences.
 
 IAM switching test with a reviewer-owned AWS test account:
 
 1. Sign in to AWS Console and keep the Console tab active.
 2. Open AWS Role Hop and select an IAM profile authorized for that account.
-3. Confirm production profiles when prompted.
-4. Verify AWS performs the role switch without an intermediate GET page.
-5. Reopen AWS Role Hop and select a second profile to verify consecutive switching.
+3. Verify AWS performs the role switch without an intermediate GET page. Opening a profile takes a single click; the extra confirmation for production accounts is off by default and can be enabled in Preferences.
+4. Reopen AWS Role Hop and select a second profile to verify consecutive switching.
 
 ## Listing assets
 
