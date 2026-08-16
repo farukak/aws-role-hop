@@ -32,3 +32,16 @@ test('a focused field shows one ring, not a second one inside it', async ({ popu
   const wrapper = popup.locator('.popup-search');
   expect(await wrapper.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe('none');
 });
+
+test('a focused field shows one ring, not a second one inside it', async ({ popup }) => {
+  await seed(popup, { profiles: SAMPLE_PROFILES });
+
+  const search = popup.getByRole('combobox', { name: 'Search profiles' });
+  await search.click();
+
+  // The wrapper owns the ring. A ring on the input as well survives only as two
+  // vertical lines at its edges, which is what this guards against.
+  await expect(search).toHaveCSS('box-shadow', 'none');
+  const wrapper = popup.locator('.popup-search');
+  expect(await wrapper.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe('none');
+});
