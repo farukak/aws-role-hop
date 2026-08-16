@@ -439,3 +439,38 @@ aws_account_id = 123456789012
     expect(result.issues.filter(({ section }) => section === 'Import limit')).toHaveLength(1);
   });
 });
+
+describe('malformed role ARNs', () => {
+  it('names the space instead of describing the whole format', () => {
+    const result = parseAwsConfig(
+      ['[Audit]', 'role_arn = arn:aws:iam:: 803148529162:role/OrganizationAccountAccessRole'].join(
+        '\n',
+      ),
+    );
+
+    expect(result.profiles).toHaveLength(0);
+    expect(result.issues[0]?.message).toContain('cannot contain spaces');
+  });
+
+  it('still explains the format when the ARN is wrong in some other way', () => {
+    const result = parseAwsConfig(
+      ['[Audit]', 'role_arn = arn:aws:iam::12345:role/Admin'].join('\n'),
+    );
+
+    expect(result.issues[0]?.message).toContain('supported partition');
+  });
+
+  it('accepts the same entry once the space is gone', () => {
+    const result = parseAwsConfig(
+      ['[Audit]', 'role_arn = arn:aws:iam::803148529162:role/OrganizationAccountAccessRole'].join(
+        '\n',
+      ),
+    );
+
+    expect(result.issues).toHaveLength(0);
+    expect(result.profiles[0]).toMatchObject({
+      accountId: '803148529162',
+      roleName: 'OrganizationAccountAccessRole',
+    });
+  });
+});

@@ -120,27 +120,6 @@ export function PreferencesView({ state, notify, onShowWhatsNew }: PreferencesVi
       <div className="preferences-stack">
         <section className="content-panel preference-section">
           <div className="preference-section__heading">
-            <h2>{t('Access mode')}</h2>
-            <p>{t('Choose which AWS access path AWS Role Hop is set up for.')}</p>
-          </div>
-          <ChoiceGroup className="choice-grid" label={t('Access mode')}>
-            <ChoiceButton
-              selected={state.settings.accessMode === 'iam'}
-              onClick={() => void saveSetting({ accessMode: 'iam' })}
-              title={t('IAM roles')}
-              description={t('Switch inside the AWS Console')}
-            />
-            <ChoiceButton
-              selected={state.settings.accessMode === 'sso'}
-              onClick={() => void saveSetting({ accessMode: 'sso' })}
-              title={t('SSO')}
-              description={t('Needs access to your AWS access portal')}
-            />
-          </ChoiceGroup>
-        </section>
-
-        <section className="content-panel preference-section">
-          <div className="preference-section__heading">
             <h2>{t('Appearance')}</h2>
             <p>{t('Use your browser preference or choose a fixed theme.')}</p>
           </div>

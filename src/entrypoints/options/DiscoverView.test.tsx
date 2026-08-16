@@ -45,7 +45,7 @@ function stateWithPortal(): AppState {
   const base = createDefaultState();
   return {
     ...base,
-    settings: { ...base.settings, accessMode: 'sso' },
+    settings: { ...base.settings },
     profiles: [createProfile(ssoDraft('Existing', '111111111111', 'ReadOnly'))],
   };
 }
@@ -174,7 +174,7 @@ describe('DiscoverView', () => {
 
   it('cannot search without a portal address', () => {
     const base = createDefaultState();
-    setup({ ...base, settings: { ...base.settings, accessMode: 'sso' } });
+    setup({ ...base, settings: { ...base.settings } });
     expect(
       screen.getByRole('button', { name: /Find accounts and roles/ }).hasAttribute('disabled'),
     ).toBe(true);
@@ -185,7 +185,7 @@ describe('DiscoverView — portal handed over from the popup', () => {
   it('prefills the portal the popup saw', () => {
     window.history.replaceState(null, '', `/#discover?portal=${encodeURIComponent(PORTAL)}`);
     const base = createDefaultState();
-    setup({ ...base, settings: { ...base.settings, accessMode: 'sso' } });
+    setup({ ...base, settings: { ...base.settings } });
 
     expect(screen.getByLabelText('Access portal URL')).toHaveProperty('value', PORTAL);
   });
@@ -197,7 +197,7 @@ describe('DiscoverView — portal handed over from the popup', () => {
       `/#discover?portal=${encodeURIComponent('https://portal.example.com/start')}`,
     );
     const base = createDefaultState();
-    setup({ ...base, settings: { ...base.settings, accessMode: 'sso' } });
+    setup({ ...base, settings: { ...base.settings } });
 
     expect(screen.getByLabelText('Access portal URL')).toHaveProperty('value', '');
   });

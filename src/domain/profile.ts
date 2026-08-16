@@ -193,11 +193,7 @@ export const profileSchema = z.discriminatedUnion('type', [roleProfileSchema, ss
  * Which AWS access path the interface is set up for. `unset` means the choice has
  * not been made yet, which is what triggers the first-run question.
  */
-export const ACCESS_MODES = ['unset', 'iam', 'sso'] as const;
-export type AccessMode = (typeof ACCESS_MODES)[number];
-
 export const settingsSchema = z.strictObject({
-  accessMode: z.enum(ACCESS_MODES),
   theme: z.enum(['system', 'light', 'dark']),
   language: z.enum(['system', 'en', 'tr']),
   openBehavior: z.enum(['current', 'new']),
@@ -224,7 +220,7 @@ export const profileListSchema = z.strictObject({
 
 export const appStateSchema = z
   .strictObject({
-    version: z.literal(5),
+    version: z.literal(6),
     profiles: z.array(profileSchema).check(z.maxLength(PROFILE_LIMIT)),
     profileLists: z
       .array(profileListSchema)
@@ -278,13 +274,9 @@ export type ProfileList = z.infer<typeof profileListSchema>;
 export type AppSettings = z.infer<typeof settingsSchema>;
 export type AppState = z.infer<typeof appStateSchema>;
 
-/** Each access path keeps its own list, so IAM and SSO profiles never mix by default. */
-export function defaultListIdForMode(mode: AccessMode): string {
-  return mode === 'sso' ? DEFAULT_SSO_PROFILE_LIST_ID : DEFAULT_PROFILE_LIST_ID;
-}
-
-export function defaultListNameForMode(mode: AccessMode): string {
-  return mode === 'sso' ? DEFAULT_SSO_LIST_NAME : DEFAULT_IAM_LIST_NAME;
+/** The list a discovered or imported SSO profile belongs in, kept apart from IAM. */
+export function isSsoList(list: ProfileList): boolean {
+  return list.id === DEFAULT_SSO_PROFILE_LIST_ID;
 }
 
 /** Built-in list names are translated; a list the user named is shown verbatim. */
@@ -302,7 +294,7 @@ export function builtInListName(
 
 export function createDefaultState(): AppState {
   return {
-    version: 5,
+    version: 6,
     profiles: [],
     profileLists: [
       { id: DEFAULT_PROFILE_LIST_ID, name: DEFAULT_IAM_LIST_NAME },
@@ -311,7 +303,6 @@ export function createDefaultState(): AppState {
     activeProfileListId: DEFAULT_PROFILE_LIST_ID,
     defaultProfileListId: DEFAULT_PROFILE_LIST_ID,
     settings: {
-      accessMode: 'unset',
       theme: 'system',
       language: 'system',
       openBehavior: 'current',

@@ -295,29 +295,3 @@ describe('PreferencesView — about and credits', () => {
     expect(document.querySelector('a[href*="linkedin"]')).toBeNull();
   });
 });
-
-describe('PreferencesView — access mode', () => {
-  it('exposes the group and shows nothing selected before the first choice', () => {
-    setup({ accessMode: 'unset' });
-    const group = screen.getByRole('radiogroup', { name: 'Access mode' });
-    const states = within(group)
-      .getAllByRole('radio')
-      .map((option) => option.getAttribute('aria-checked'));
-    expect(states).toEqual(['false', 'false']);
-  });
-
-  it('persists Identity Center as the default access mode', async () => {
-    const { user } = setup({ accessMode: 'iam' });
-
-    await user.click(screen.getByRole('radio', { name: /SSO/ }));
-
-    await waitFor(async () => {
-      expect((await loadAppState()).settings.accessMode).toBe('sso');
-    });
-  });
-
-  it('discloses that Identity Center needs portal access', () => {
-    setup({ accessMode: 'iam' });
-    expect(screen.getByText('Needs access to your AWS access portal')).toBeDefined();
-  });
-});

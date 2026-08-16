@@ -6,7 +6,14 @@ import {
   PortalDiscoveryError,
   requestPortalAccess,
 } from '../../discovery/portal-session';
-import { isAllowedPortalUrl, type AppState, type ProfileDraft } from '../../domain/profile';
+import {
+  builtInListName,
+  DEFAULT_SSO_PROFILE_LIST_ID,
+  isAllowedPortalUrl,
+  isSsoList,
+  type AppState,
+  type ProfileDraft,
+} from '../../domain/profile';
 import { importProfiles } from '../../storage/app-state';
 import { useI18n } from '../../i18n';
 import type { Notify } from './App';
@@ -40,7 +47,8 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
   const [portalUrl, setPortalUrl] = useState(
     () => portalFromHash(window.location.hash) || knownPortal,
   );
-  const [destinationListId, setDestinationListId] = useState(state.defaultProfileListId);
+  // Discovered profiles belong to the SSO list, never to an IAM one.
+  const [destinationListId, setDestinationListId] = useState(DEFAULT_SSO_PROFILE_LIST_ID);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -254,11 +262,16 @@ export function DiscoverView({ state, notify, onImported }: DiscoverViewProps) {
                   value={destinationListId}
                   onChange={(event) => setDestinationListId(event.target.value)}
                 >
-                  {state.profileLists.map((list) => (
-                    <option key={list.id} value={list.id}>
-                      {list.name}
-                    </option>
-                  ))}
+                  {state.profileLists
+                    .filter((list) => isSsoList(list))
+                    .map((list) => {
+                      const builtIn = builtInListName(list);
+                      return (
+                        <option key={list.id} value={list.id}>
+                          {builtIn === null ? list.name : t(builtIn)}
+                        </option>
+                      );
+                    })}
                 </select>
               </label>
 

@@ -48,23 +48,9 @@ const TURKISH_MESSAGES = {
   'Loading settings': 'Ayarlar yükleniyor',
   'Your experience': 'Deneyimin',
   'Control appearance, navigation, and local data.': 'Görünümü, gezinmeyi ve yerel verileri yönet.',
-  'Access mode': 'Erişim modu',
-  'How do you use AWS?': 'AWS’i nasıl kullanıyorsun?',
-  'Choose the access path AWS Role Hop should open with. You can change it later in settings.':
-    'AWS Role Hop’un hangi erişim yoluyla açılacağını seç. Bunu daha sonra ayarlardan değiştirebilirsin.',
-  'Switch roles from an authenticated AWS Console tab.':
-    'Kimliği doğrulanmış bir AWS Console sekmesinden rol değiştir.',
-  'Open permission sets through your AWS access portal.':
-    'İzin setlerini AWS erişim portalın üzerinden aç.',
-  'AWS Role Hop asks for portal access only when you choose Identity Center.':
-    'AWS Role Hop portal erişimini yalnızca Identity Center’ı seçtiğinde ister.',
-  'Could not save the access mode.': 'Erişim modu kaydedilemedi.',
+  'Access path': 'Erişim yolu',
   IAM: 'IAM',
   SSO: 'SSO',
-  'This list also has SSO profiles.': 'Bu listede SSO profilleri de var.',
-  'This list also has IAM profiles.': 'Bu listede IAM profilleri de var.',
-  'Switch to SSO': 'SSO’ya geç',
-  'Switch to IAM': 'IAM’e geç',
   'Choose between IAM and SSO when you first open AWS Role Hop, and switch access path whenever you want.':
     'AWS Role Hop’u ilk açtığında IAM ile SSO arasında seç, erişim yolunu istediğin zaman değiştir.',
   'Let AWS Role Hop read your accounts and permission sets from your AWS access portal instead of typing them.':
@@ -75,6 +61,16 @@ const TURKISH_MESSAGES = {
     'IAM ve SSO profillerini kendi varsayılan listelerinde ayrı tut.',
   'Open any profile in a single click, with the production confirmation available when you want it.':
     'Her profili tek tıkla aç; üretim onayı istediğinde açılabilir durumda kalsın.',
+  'Reach both IAM roles and SSO without choosing a mode first: Import and Discover are always available.':
+    'IAM rolleri ve SSO’ya önce bir mod seçmeden ulaş: İçe aktarma ve Keşfet her zaman yerinde.',
+  'Imported Identity Center profiles now land in the SSO list on their own, so the lists never mix.':
+    'İçe aktarılan Identity Center profilleri kendiliğinden SSO listesine düşer; listeler hiç karışmaz.',
+  'The list you are looking at decides what the popup offers, which removes a setting you had to think about.':
+    'Baktığın liste açılır pencerenin ne sunduğunu belirler; böylece düşünmen gereken bir ayar ortadan kalkar.',
+  'Fixed a stray line that appeared inside a field while typing in it.':
+    'Bir alana yazarken içinde görünen başıboş çizgi düzeltildi.',
+  'An import that trips over a stray space in a role ARN now says so instead of restating the format.':
+    'Rol ARN’ında başıboş bir boşluğa takılan içe aktarma, biçimi tekrar anlatmak yerine bunu söylüyor.',
   'Default IAM': 'Varsayılan IAM',
   'Default SSO': 'Varsayılan SSO',
   'Pick an account to open it, or scan the portal again to refresh this list.':
@@ -112,11 +108,7 @@ const TURKISH_MESSAGES = {
   'Sign in to the access portal in a tab, then try again.':
     'Portalı bir sekmede aç ve giriş yap, sonra tekrar dene.',
   'The access portal could not be read.': 'Erişim portalı okunamadı.',
-  'Choose which AWS access path AWS Role Hop is set up for.':
-    'AWS Role Hop’un hangi AWS erişim yolu için kurulduğunu seç.',
   'IAM roles': 'IAM rolleri',
-  'Switch inside the AWS Console': 'AWS Console içinde geçiş yap',
-  'Needs access to your AWS access portal': 'AWS erişim portalına erişim gerektirir',
   Appearance: 'Görünüm',
   'Use your browser preference or choose a fixed theme.':
     'Tarayıcı tercihini kullan veya sabit bir tema seç.',
