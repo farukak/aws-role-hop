@@ -22,6 +22,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - Focused fields drew a second ring inside the wrapper that already had one, which showed up as two vertical lines at the edges of the search box and the list pickers.
+- An import that failed because a role ARN carried a stray space reported the whole expected format instead of the actual problem. Lists carried between tools pick this up, and the message now names the space.
 
 ## [0.2.0] - 2026-08-13
 

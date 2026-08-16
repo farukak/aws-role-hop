@@ -68,6 +68,8 @@ const TURKISH_MESSAGES = {
     'Baktığın liste açılır pencerenin ne sunduğunu belirler; böylece düşünmen gereken bir ayar ortadan kalkar.',
   'Fixed a stray line that appeared inside a field while typing in it.':
     'Bir alana yazarken içinde görünen başıboş çizgi düzeltildi.',
+  'An import that trips over a stray space in a role ARN now says so instead of restating the format.':
+    'Rol ARN’ında başıboş bir boşluğa takılan içe aktarma, biçimi tekrar anlatmak yerine bunu söylüyor.',
   'Default IAM': 'Varsayılan IAM',
   'Default SSO': 'Varsayılan SSO',
   'Pick an account to open it, or scan the portal again to refresh this list.':

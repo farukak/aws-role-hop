@@ -15,6 +15,7 @@ export const RELEASE_NOTES: readonly ReleaseNote[] = [
       'Imported Identity Center profiles now land in the SSO list on their own, so the lists never mix.',
       'The list you are looking at decides what the popup offers, which removes a setting you had to think about.',
       'Fixed a stray line that appeared inside a field while typing in it.',
+      'An import that trips over a stray space in a role ARN now says so instead of restating the format.',
     ],
   },
   {
