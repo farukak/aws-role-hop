@@ -6,6 +6,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-16
+
+### Removed
+
+- The access-mode setting, along with the first-run question that asked for it and the switcher in the popup. Both ways into AWS are always available instead: **Import** brings in IAM roles, **Discover** reads accounts from an AWS access portal. Storage moved to version 6, which drops the stored setting; nothing else in a saved profile changes.
+
+### Changed
+
+- The list on screen now decides what the popup offers. Selecting the SSO list shows the portal scan and points an empty list at discovery; any other list points at adding or importing a role.
+- The popup lists the active list as it is. Filtering by access path is gone, and with it the notice that explained what the filter had hidden.
+- Identity Center profiles found in a pasted AWS config are written to the SSO list whatever destination is chosen, so a mixed config no longer mixes the lists. The SSO list is recreated if it was deleted.
+- **Import** no longer offers the SSO list as a destination, and **Discover** writes only to it.
+
+### Fixed
+
+- Focused fields drew a second ring inside the wrapper that already had one, which showed up as two vertical lines at the edges of the search box and the list pickers.
+
 ## [0.2.0] - 2026-08-13
 
 ### Added
@@ -125,7 +142,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - All four modal dialogs expose an accessible name and description, the popup has a top-level heading, and both the popup and the options list announce how many profiles match the current search.
 - Removed a keyboard shortcut hint in the popup search field that no handler implemented and that showed a macOS-only key on every platform.
 
-[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/farukak/aws-role-hop/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/farukak/aws-role-hop/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/farukak/aws-role-hop/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/farukak/aws-role-hop/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/farukak/aws-role-hop/compare/v0.1.1...v0.1.2

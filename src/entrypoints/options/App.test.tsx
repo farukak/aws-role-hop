@@ -67,24 +67,14 @@ describe('options deep links', () => {
   });
 });
 
-describe('options navigation follows the access mode', () => {
-  async function seedMode(accessMode: 'iam' | 'sso'): Promise<void> {
-    const base = createDefaultState();
-    await saveAppState({ ...base, settings: { ...base.settings, accessMode } });
-  }
-
-  it('hides discovery while IAM mode is active', async () => {
-    await seedMode('iam');
+describe('options navigation', () => {
+  it('always offers both Import and Discover', async () => {
+    await saveAppState(createDefaultState());
     render(<OptionsApp />);
 
+    // Import serves IAM roles and Discover serves the access portal; neither is
+    // hidden behind a setting any more.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Import' })).toBeDefined());
-    expect(screen.queryByRole('button', { name: 'Discover' })).toBeNull();
-  });
-
-  it('offers discovery in Identity Center mode', async () => {
-    await seedMode('sso');
-    render(<OptionsApp />);
-
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Discover' })).toBeDefined());
+    expect(screen.getByRole('button', { name: 'Discover' })).toBeDefined();
   });
 });

@@ -1,13 +1,10 @@
 import { browser } from 'wxt/browser';
 import { chooseProfileColorId } from '../domain/colors';
 import {
-  type AccessMode,
   DEFAULT_IAM_LIST_NAME,
   DEFAULT_PROFILE_LIST_ID,
   DEFAULT_SSO_LIST_NAME,
   DEFAULT_SSO_PROFILE_LIST_ID,
-  defaultListIdForMode,
-  defaultListNameForMode,
   PROFILE_COLOR_IDS,
   PROFILE_LIMIT,
   PROFILE_LIST_LIMIT,
@@ -48,19 +45,6 @@ async function readStoredValue(): Promise<unknown> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Picks the access mode an existing installation was already working in, so an
- * upgrade never interrupts someone who has profiles. An empty store is left
- * `unset` so the first-run question is still asked.
- */
-function deriveAccessMode(profiles: unknown): AccessMode {
-  const stored = Array.isArray(profiles) ? profiles.filter(isRecord) : [];
-  if (stored.length === 0) return 'unset';
-  const hasRole = stored.some((profile) => profile.type === 'role');
-  const hasIdentityCenter = stored.some((profile) => profile.type === 'sso');
-  return hasIdentityCenter && !hasRole ? 'sso' : 'iam';
 }
 
 function migrateToProfileLists(migrated: Record<string, unknown>): Record<string, unknown> {
@@ -145,7 +129,6 @@ function migrateStoredValue(value: unknown): unknown {
       version: 4,
       settings: {
         ...migrated.settings,
-        accessMode: deriveAccessMode(migrated.profiles),
         // Opening a profile is now a single click everywhere. The confirmation is
         // still available in preferences for anyone who wants it back.
         confirmProduction: false,
@@ -153,9 +136,15 @@ function migrateStoredValue(value: unknown): unknown {
     };
   }
 
-  // Keep this last: every step above has to be able to reach it.
   if (migrated.version === 4 && isRecord(migrated.settings)) {
     migrated = migrateToModeLists(migrated);
+  }
+
+  // Keep this last: every step above has to be able to reach it.
+  if (migrated.version === 5 && isRecord(migrated.settings)) {
+    const settings: Record<string, unknown> = { ...migrated.settings };
+    delete settings.accessMode;
+    migrated = { ...migrated, version: 6, settings };
   }
 
   return migrated;
@@ -369,24 +358,6 @@ export async function markProfileUsed(id: string): Promise<AppState> {
   });
 }
 
-/**
- * Switching access path also switches the list on screen, so IAM and SSO stay
- * separated without the user having to pick a list by hand.
- */
-export async function setAccessMode(mode: AccessMode): Promise<AppState> {
-  return updateAppState((current) => {
-    const settings = { ...current.settings, accessMode: mode };
-    if (mode === 'unset') return { ...current, settings };
-
-    const listId = defaultListIdForMode(mode);
-    const profileLists = current.profileLists.some((list) => list.id === listId)
-      ? current.profileLists
-      : [...current.profileLists, { id: listId, name: defaultListNameForMode(mode) }];
-
-    return { ...current, profileLists, activeProfileListId: listId, settings };
-  });
-}
-
 export async function updateSettings(patch: Partial<AppSettings>): Promise<AppState> {
   return updateAppState((state) => {
     const result = settingsSchema.safeParse({ ...state.settings, ...patch });
@@ -511,19 +482,53 @@ function addImportedProfiles(
   return { profiles, added, skipped };
 }
 
+/**
+ * Identity Center profiles always land in the SSO list, whatever the chosen
+ * destination is, so a pasted config that mixes both kinds does not mix the lists.
+ */
 export async function importProfiles(
   drafts: ProfileDraft[],
   listId?: string,
 ): Promise<ImportSummary> {
   const validatedDrafts = drafts.map((draft) => parseProfileDraft(draft));
+  const roleDrafts = validatedDrafts.filter((draft) => draft.type !== 'sso');
+  const ssoDrafts = validatedDrafts.filter((draft) => draft.type === 'sso');
   let result = { added: 0, skipped: 0 };
   let targetListId = '';
+
   const state = await updateAppState((current) => {
     targetListId = listId ?? current.activeProfileListId;
     requireProfileList(current, targetListId);
-    const imported = addImportedProfiles(current, validatedDrafts, targetListId);
-    result = { added: imported.added, skipped: imported.skipped };
-    return { ...current, profiles: imported.profiles };
+
+    let next = current;
+    if (
+      ssoDrafts.length > 0 &&
+      !next.profileLists.some(({ id }) => id === DEFAULT_SSO_PROFILE_LIST_ID)
+    ) {
+      next = {
+        ...next,
+        profileLists: [
+          ...next.profileLists,
+          { id: DEFAULT_SSO_PROFILE_LIST_ID, name: DEFAULT_SSO_LIST_NAME },
+        ],
+      };
+    }
+
+    let added = 0;
+    let skipped = 0;
+    for (const [drafts, destination] of [
+      [roleDrafts, targetListId],
+      [ssoDrafts, DEFAULT_SSO_PROFILE_LIST_ID],
+    ] as const) {
+      if (drafts.length === 0) continue;
+      const imported = addImportedProfiles(next, drafts, destination);
+      next = { ...next, profiles: imported.profiles };
+      added += imported.added;
+      skipped += imported.skipped;
+    }
+
+    result = { added, skipped };
+    return next;
   });
 
   return { state, ...result, listId: targetListId };

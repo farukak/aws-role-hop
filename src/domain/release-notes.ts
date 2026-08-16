@@ -8,6 +8,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: readonly ReleaseNote[] = [
   {
+    version: '0.3.0',
+    date: '2026-08-16',
+    highlights: [
+      'Reach both IAM roles and SSO without choosing a mode first: Import and Discover are always available.',
+      'Imported Identity Center profiles now land in the SSO list on their own, so the lists never mix.',
+      'The list you are looking at decides what the popup offers, which removes a setting you had to think about.',
+      'Fixed a stray line that appeared inside a field while typing in it.',
+    ],
+  },
+  {
     version: '0.2.0',
     date: '2026-08-13',
     highlights: [

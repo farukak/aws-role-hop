@@ -35,17 +35,17 @@ Switch IAM roles and open AWS SSO accounts in one click. Private, local-only pro
 
 AWS Role Hop is a private profile launcher and role switcher for the AWS Management Console. It keeps IAM roles and AWS IAM Identity Center (AWS SSO) permission sets searchable in local browser storage and opens them in one click, without ever storing AWS credentials.
 
-Pick your access path once, and change it whenever you want:
+Both ways into AWS are always available, side by side:
 
-- IAM roles: switch roles straight from the AWS Console tab you are signed in to, using AWS's own switch-role request. No intermediate page.
-- SSO: open account and permission-set shortcuts through your AWS access portal.
+- IAM roles: switch roles straight from the AWS Console tab you are signed in to, using AWS's own switch-role request. No intermediate page. Import brings them in from an AWS config file.
+- SSO: open account and permission-set shortcuts through your AWS access portal. Discover fills them in for you.
 
 Key features:
 
 - One click opens any profile, with an optional extra confirmation for production accounts.
 - Discovery reads the accounts and permission sets your AWS access portal offers and turns them into profiles, so nothing has to be typed by hand. Your browser asks for access to the portal only when you start discovery, and you can withdraw it at any time.
 - Scan the portal straight from the popup while you are on it.
-- Separate default lists for IAM and SSO, so the two access paths never mix.
+- Separate built-in lists for IAM and SSO, so the two never mix. Import writes to the IAM list, discovery to the SSO one.
 - Keyboard-first fuzzy search across profile names, account IDs, roles, environments, and tags.
 - Named profile lists with favorites, tags, environments, landing regions, account-ID masking, and automatic or manually chosen pastel colors.
 - Import AWS config and Organizations JSON with live validation and syntax highlighting.
@@ -93,14 +93,14 @@ AWS Role Hop, AWS Management Console için özel bir profil başlatıcısı ve r
 Erişim yolunu bir kez seç, istediğin zaman değiştir:
 
 - IAM rolleri: oturum açtığın AWS Console sekmesinden, AWS'nin kendi rol değiştirme isteğiyle doğrudan geçiş. Araya giren bir sayfa yok.
-- SSO: hesap ve izin seti kısayollarını AWS erişim portalın üzerinden açma.
+- SSO: hesap ve izin seti kısayollarını AWS erişim portalın üzerinden açma. Keşif bunları senin için doldurur.
 
 Başlıca özellikler:
 
 - Her profil tek tıkla açılır; üretim hesapları için ek onay isteğe bağlıdır.
 - Keşif, AWS erişim portalının sunduğu hesapları ve izin setlerini okuyup profile dönüştürür; elle yazmak gerekmez. Tarayıcın portala erişimi yalnızca keşfi başlattığında ister, izni istediğin zaman geri alabilirsin.
 - Portaldayken taramayı doğrudan açılır pencereden yap.
-- IAM ve SSO için ayrı varsayılan listeler; iki erişim yolu hiç karışmaz.
+- IAM ve SSO için ayrı yerleşik listeler; ikisi hiç karışmaz. İçe aktarma IAM listesine, keşif SSO listesine yazar.
 - Profil adları, hesap kimlikleri, roller, ortamlar ve etiketler arasında klavye öncelikli esnek arama.
 - Adlandırılmış profil listeleri; favoriler, etiketler, ortamlar, açılış bölgeleri, hesap kimliği maskeleme ve otomatik veya elle seçilen pastel renkler.
 - AWS config ve Organizations JSON verilerini canlı doğrulama ve sözdizimi renklendirmeyle içe aktarma.
