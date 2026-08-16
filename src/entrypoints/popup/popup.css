@@ -637,3 +637,13 @@ body {
   line-height: 1.4;
   color: var(--color-text-tertiary);
 }
+
+/*
+ * These wrappers own the focus ring through :focus-within. Without this, the
+ * control inside also draws the global ring; it is taller than the wrapper's
+ * padding allows, so it survives only as two vertical lines at the control edges.
+ */
+.popup-search input:focus-visible,
+.popup-list-picker select:focus-visible {
+  box-shadow: none;
+}
