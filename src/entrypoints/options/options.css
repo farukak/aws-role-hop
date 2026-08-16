@@ -1999,3 +1999,13 @@ body {
   color: var(--color-text-secondary);
   overflow-wrap: anywhere;
 }
+
+/*
+ * These wrappers own the focus ring through :focus-within. Without this, the
+ * control inside also draws the global ring; it is taller than the wrapper's
+ * padding allows, so it survives only as two vertical lines at the control edges.
+ */
+.options-search input:focus-visible,
+.profile-color-option input:focus-visible {
+  box-shadow: none;
+}

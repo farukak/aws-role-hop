@@ -17,6 +17,7 @@ import {
 } from '../../components/ProfileVisual';
 import {
   builtInListName,
+  isSsoList,
   PARTITION_OPTIONS,
   PROFILE_LIST_NAME_MAX_LENGTH,
   ROLE_NAME_MAX_LENGTH,
@@ -342,18 +343,20 @@ export function ImportView({ state, notify, onImported, onManageList }: ImportVi
                       }}
                       aria-label={t('Import into profile list')}
                     >
-                      {state.profileLists.map((list) => {
-                        const builtInDefault = builtInListName(list);
-                        const name = builtInDefault === null ? list.name : t(builtInDefault);
-                        return (
-                          <option key={list.id} value={list.id}>
-                            {name}
-                            {list.id === state.defaultProfileListId && !builtInDefault
-                              ? ` — ${t('Default')}`
-                              : ''}
-                          </option>
-                        );
-                      })}
+                      {state.profileLists
+                        .filter((list) => !isSsoList(list))
+                        .map((list) => {
+                          const builtInDefault = builtInListName(list);
+                          const name = builtInDefault === null ? list.name : t(builtInDefault);
+                          return (
+                            <option key={list.id} value={list.id}>
+                              {name}
+                              {list.id === state.defaultProfileListId && !builtInDefault
+                                ? ` — ${t('Default')}`
+                                : ''}
+                            </option>
+                          );
+                        })}
                     </select>
                   </label>
                   {destinationProfiles.length > 0 && (

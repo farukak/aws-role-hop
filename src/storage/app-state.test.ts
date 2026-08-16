@@ -6,7 +6,6 @@ import {
   addProfile,
   createProfileList,
   deleteProfileList,
-  setAccessMode,
   editProfile,
   ensureAppState,
   importProfiles,
@@ -90,10 +89,8 @@ describe('ensureAppState', () => {
     await browser.storage.local.set({ [STORAGE_KEY]: legacy });
 
     const migrated = await ensureAppState();
-    expect(migrated.version).toBe(5);
+    expect(migrated.version).toBe(6);
     expect(migrated.settings.language).toBe('system');
-    // Nothing was stored yet, so the first-run question is still owed.
-    expect(migrated.settings.accessMode).toBe('unset');
     expect(await readRaw()).toEqual(migrated);
   });
 
@@ -465,8 +462,8 @@ describe('restoreAppState and resetAppState', () => {
     };
     const restored = await restoreAppState({ ...current, version: 1, settings: legacySettings });
     expect(restored).toMatchObject({
-      version: 5,
-      settings: { language: 'system', accessMode: 'unset' },
+      version: 6,
+      settings: { language: 'system' },
     });
   });
 
@@ -566,46 +563,11 @@ describe('schema migrations', () => {
     });
   }
 
-  it('keeps an IAM user in IAM mode', async () => {
+  it('carries an existing installation forward without its profiles moving', async () => {
     await seedVersion3([storedProfile({})]);
     const migrated = await ensureAppState();
-    expect(migrated.version).toBe(5);
-    expect(migrated.settings.accessMode).toBe('iam');
+    expect(migrated.version).toBe(6);
     expect(migrated.profiles).toHaveLength(1);
-  });
-
-  it('puts an Identity Center-only installation into Identity Center mode', async () => {
-    await seedVersion3([
-      storedProfile({
-        type: 'sso',
-        name: 'Platform',
-        roleName: 'PlatformAccess',
-        portalUrl: 'https://example.awsapps.com/start',
-        partition: undefined,
-      }),
-    ]);
-    const migrated = await ensureAppState();
-    expect(migrated.settings.accessMode).toBe('sso');
-  });
-
-  it('prefers IAM when both kinds of profile are stored', async () => {
-    await seedVersion3([
-      storedProfile({}),
-      storedProfile({
-        type: 'sso',
-        name: 'Platform',
-        accountId: '891377166946',
-        roleName: 'PlatformAccess',
-        portalUrl: 'https://example.awsapps.com/start',
-        partition: undefined,
-      }),
-    ]);
-    expect((await ensureAppState()).settings.accessMode).toBe('iam');
-  });
-
-  it('still asks a user who has no profiles yet', async () => {
-    await seedVersion3([]);
-    expect((await ensureAppState()).settings.accessMode).toBe('unset');
   });
 
   it('turns the production confirmation off so every launch is one click', async () => {
@@ -669,7 +631,7 @@ describe('separate default lists per access path', () => {
     await seedVersion4('iam');
     const migrated = await ensureAppState();
 
-    expect(migrated.version).toBe(5);
+    expect(migrated.version).toBe(6);
     expect(migrated.profileLists).toEqual([
       { id: LEGACY_LIST_ID, name: 'Default IAM' },
       { id: SSO_LIST_ID, name: 'Default SSO' },
@@ -713,32 +675,43 @@ describe('separate default lists per access path', () => {
   });
 });
 
-describe('setAccessMode', () => {
-  it('puts the matching list on screen', async () => {
+describe('import routing between the built-in lists', () => {
+  const IAM_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SSO_LIST_ID = '00000000-0000-4000-8000-000000000002';
+
+  function ssoDraft(): ProfileDraft {
+    return profileDraftSchema.parse({
+      type: 'sso',
+      name: 'Platform access',
+      accountId: '222222222222',
+      roleName: 'PlatformAccess',
+      portalUrl: 'https://example.awsapps.com/start',
+      environment: 'other',
+      favorite: false,
+      tags: [],
+    });
+  }
+
+  it('sends Identity Center profiles to the SSO list even when an IAM list is chosen', async () => {
     await ensureAppState();
 
-    const sso = await setAccessMode('sso');
-    expect(sso.settings.accessMode).toBe('sso');
-    expect(sso.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
+    const summary = await importProfiles([draft(), ssoDraft()], IAM_LIST_ID);
+    expect(summary.added).toBe(2);
 
-    const iam = await setAccessMode('iam');
-    expect(iam.activeProfileListId).toBe('00000000-0000-4000-8000-000000000001');
+    const stored = await loadAppState();
+    const byType = Object.fromEntries(stored.profiles.map((p) => [p.type, p.listId]));
+    expect(byType.role).toBe(IAM_LIST_ID);
+    expect(byType.sso).toBe(SSO_LIST_ID);
   });
 
-  it('recreates the list for a mode whose list was deleted', async () => {
+  it('recreates the SSO list when it was deleted', async () => {
     await ensureAppState();
-    await deleteProfileList('00000000-0000-4000-8000-000000000002');
-    expect((await loadAppState()).profileLists).toHaveLength(1);
+    await deleteProfileList(SSO_LIST_ID);
 
-    const state = await setAccessMode('sso');
-    expect(state.profileLists.map((list) => list.name)).toContain('Default SSO');
-    expect(state.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
-  });
+    await importProfiles([ssoDraft()], IAM_LIST_ID);
 
-  it('leaves the list alone while no path has been chosen', async () => {
-    const before = await ensureAppState();
-    const state = await setAccessMode('unset');
-    expect(state.activeProfileListId).toBe(before.activeProfileListId);
-    expect(state.settings.accessMode).toBe('unset');
+    const stored = await loadAppState();
+    expect(stored.profileLists.some(({ id }) => id === SSO_LIST_ID)).toBe(true);
+    expect(stored.profiles[0]?.listId).toBe(SSO_LIST_ID);
   });
 });

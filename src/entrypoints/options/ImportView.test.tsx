@@ -427,7 +427,8 @@ describe('ImportView — duplicate warnings', () => {
 
 describe('ImportView — editing an existing list', () => {
   const DEFAULT_LIST_ID = '00000000-0000-4000-8000-000000000001';
-  const SECOND_LIST_ID = '00000000-0000-4000-8000-000000000002';
+  // A list the user made: not one of the built-ins, so it is a valid import destination.
+  const SECOND_LIST_ID = '00000000-0000-4000-8000-000000000009';
   const ISO = '2026-01-01T00:00:00.000Z';
 
   function stateWithLists(): AppState {
@@ -507,5 +508,18 @@ describe('ImportView — editing an existing list', () => {
   it('offers no loader for an empty destination list', () => {
     setup(createDefaultState());
     expect(screen.queryByRole('button', { name: 'Load list into editor' })).toBeNull();
+  });
+});
+
+describe('ImportView — destinations', () => {
+  it('does not offer the SSO list, which discovery fills', () => {
+    setup(createDefaultState());
+
+    const names = Array.from(
+      screen.getByLabelText('Import into profile list').querySelectorAll('option'),
+      (option) => option.textContent,
+    );
+    expect(names).toContain('Default IAM');
+    expect(names).not.toContain('Default SSO');
   });
 });

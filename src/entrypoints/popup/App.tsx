@@ -13,7 +13,6 @@ import {
   X,
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
-import { AccessModeChooser } from './AccessModeChooser';
 import { PortalScan } from './PortalScan';
 import { AccessModeMark, type AccessModeChoice } from '../../components/AccessModeMark';
 import { ChoiceGroup } from '../../components/ChoiceGroup';
@@ -29,7 +28,10 @@ import { StatusCard } from '../../components/StatusCard';
 import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
 import {
   builtInListName,
+  DEFAULT_PROFILE_LIST_ID,
+  DEFAULT_SSO_PROFILE_LIST_ID,
   isAllowedPortalUrl,
+  isSsoList,
   normalizePortalUrl,
   sortProfiles,
   type Profile,
@@ -38,13 +40,7 @@ import { searchProfiles } from '../../domain/search';
 import { useAppState, useTheme } from '../../hooks/useAppState';
 import type { AwsSwitchFailureCode } from '../../domain/role-handoff';
 import { useI18n, type Message } from '../../i18n';
-import {
-  markProfileUsed,
-  setAccessMode,
-  setActiveProfileList,
-  toggleFavorite,
-  updateSettings,
-} from '../../storage/app-state';
+import { markProfileUsed, setActiveProfileList, toggleFavorite } from '../../storage/app-state';
 
 const SWITCH_FAILURE_MESSAGES: Record<AwsSwitchFailureCode, Message> = {
   unauthorized:
@@ -65,7 +61,6 @@ export function PopupApp() {
   const [busyProfileId, setBusyProfileId] = useState<string | null>(null);
   const [pendingProduction, setPendingProduction] = useState<Profile | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [pendingMode, setPendingMode] = useState<AccessModeChoice | null>(null);
   const [portalTabUrl, setPortalTabUrl] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -86,20 +81,18 @@ export function PopupApp() {
     })();
   }, []);
 
-  const accessMode = state?.settings.accessMode ?? 'unset';
-  const activeListProfiles = useMemo(
+  const listProfiles = useMemo(
     () => state?.profiles.filter(({ listId }) => listId === state.activeProfileListId) ?? [],
     [state],
   );
-  const listProfiles = useMemo(
-    () =>
-      activeListProfiles.filter((profile) =>
-        accessMode === 'sso' ? profile.type === 'sso' : profile.type === 'role',
-      ),
-    [activeListProfiles, accessMode],
-  );
-  /** What the active list holds for the other access path, so nothing disappears silently. */
-  const otherModeCount = activeListProfiles.length - listProfiles.length;
+  /**
+   * The list on screen decides the context: the SSO list is filled by discovery,
+   * every other list by adding or importing IAM roles.
+   */
+  const ssoContext = useMemo(() => {
+    const active = state?.profileLists.find(({ id }) => id === state.activeProfileListId);
+    return active !== undefined && isSsoList(active);
+  }, [state]);
   const profiles = useMemo(
     () => searchProfiles(sortProfiles(listProfiles), query),
     [listProfiles, query],
@@ -134,38 +127,6 @@ export function PopupApp() {
       return;
     }
     void switchToProfile(profile);
-  }
-
-  async function chooseAccessMode(mode: AccessModeChoice): Promise<void> {
-    setActionError(null);
-    setPendingMode(mode);
-    try {
-      await setAccessMode(mode);
-      setQuery('');
-      setSelectedIndex(0);
-    } catch (modeError: unknown) {
-      setActionError(
-        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
-      );
-      setPendingMode(null);
-    }
-  }
-
-  /**
-   * Reveals the other access path without leaving the list the user is looking at,
-   * which is the whole point of the hint that offers it.
-   */
-  async function revealOtherMode(mode: AccessModeChoice): Promise<void> {
-    setActionError(null);
-    try {
-      await updateSettings({ accessMode: mode });
-      setQuery('');
-      setSelectedIndex(0);
-    } catch (modeError: unknown) {
-      setActionError(
-        modeError instanceof Error ? modeError.message : t('Could not save the access mode.'),
-      );
-    }
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
@@ -272,16 +233,6 @@ export function PopupApp() {
     );
   }
 
-  if (state.settings.accessMode === 'unset') {
-    return (
-      <AccessModeChooser
-        onChoose={(mode) => void chooseAccessMode(mode)}
-        busy={pendingMode}
-        error={actionError}
-      />
-    );
-  }
-
   return (
     <main className="popup-shell">
       <h1 className="visually-hidden">{t('AWS Role Hop profiles')}</h1>
@@ -297,23 +248,23 @@ export function PopupApp() {
         </button>
       </header>
 
-      <ChoiceGroup className="popup-mode-switch" label={t('Access mode')}>
-        <ModeOption
+      <ChoiceGroup className="popup-mode-switch" label={t('Access path')}>
+        <PathOption
           mode="iam"
           label={t('IAM')}
-          selected={accessMode === 'iam'}
-          onSelect={() => void chooseAccessMode('iam')}
+          selected={state.activeProfileListId === DEFAULT_PROFILE_LIST_ID}
+          onSelect={() => void selectProfileList(DEFAULT_PROFILE_LIST_ID)}
         />
-        <ModeOption
+        <PathOption
           mode="sso"
           label={t('SSO')}
-          selected={accessMode === 'sso'}
-          onSelect={() => void chooseAccessMode('sso')}
+          selected={state.activeProfileListId === DEFAULT_SSO_PROFILE_LIST_ID}
+          onSelect={() => void selectProfileList(DEFAULT_SSO_PROFILE_LIST_ID)}
         />
       </ChoiceGroup>
 
       <p className="popup-guidance">
-        {accessMode === 'sso'
+        {ssoContext
           ? t('Pick an account to open it, or scan the portal again to refresh this list.')
           : t('Open this from an AWS Console tab, then pick a profile to switch roles there.')}
       </p>
@@ -391,7 +342,7 @@ export function PopupApp() {
           : t('{count} profiles available.', { count: listProfiles.length })}
       </p>
 
-      {accessMode === 'sso' &&
+      {ssoContext &&
         portalTabUrl !== null &&
         (scanning ? (
           <PortalScan
@@ -422,7 +373,7 @@ export function PopupApp() {
         <div className="popup-handoff-note">
           <ShieldCheck size={14} strokeWidth={1.8} aria-hidden="true" />
           <span>
-            {accessMode === 'sso'
+            {ssoContext
               ? t(
                   'SSO profiles open through your AWS access portal. AWS still verifies your session and access.',
                 )
@@ -439,24 +390,8 @@ export function PopupApp() {
         </div>
       )}
 
-      {otherModeCount > 0 && (
-        <div className="popup-mode-hint">
-          <span>
-            {accessMode === 'sso'
-              ? t('This list also has IAM profiles.')
-              : t('This list also has SSO profiles.')}
-          </span>
-          <button
-            type="button"
-            onClick={() => void revealOtherMode(accessMode === 'sso' ? 'iam' : 'sso')}
-          >
-            {accessMode === 'sso' ? t('Switch to IAM') : t('Switch to SSO')}
-          </button>
-        </div>
-      )}
-
       {listProfiles.length === 0 ? (
-        accessMode === 'sso' ? (
+        ssoContext ? (
           <StatusCard
             title={t('Bring in your SSO accounts')}
             description={t(
@@ -613,14 +548,18 @@ export function PopupApp() {
   );
 }
 
-interface ModeOptionProps {
+interface PathOptionProps {
   mode: AccessModeChoice;
   label: string;
   selected: boolean;
   onSelect: () => void;
 }
 
-function ModeOption({ mode, label, selected, onSelect }: ModeOptionProps) {
+/**
+ * Shows both ways into AWS on the screen the user actually opens. Choosing one
+ * selects that built-in list; nothing is written to preferences.
+ */
+function PathOption({ mode, label, selected, onSelect }: PathOptionProps) {
   return (
     <button
       type="button"

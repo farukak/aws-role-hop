@@ -42,7 +42,7 @@ async function seed(...drafts: ReturnType<typeof draft>[]): Promise<void> {
   const base = createDefaultState();
   await saveAppState({
     ...base,
-    settings: { ...base.settings, accessMode: 'iam' },
+    settings: { ...base.settings },
     profiles: drafts.map((entry) => createProfile(entry)),
   });
 }
@@ -52,7 +52,7 @@ async function seedConfirming(...drafts: ReturnType<typeof draft>[]): Promise<vo
   const base = createDefaultState();
   await saveAppState({
     ...base,
-    settings: { ...base.settings, accessMode: 'iam', confirmProduction: true },
+    settings: { ...base.settings, confirmProduction: true },
     profiles: drafts.map((entry) => createProfile(entry)),
   });
 }
@@ -327,7 +327,6 @@ describe('PopupApp — switching profiles', () => {
       ...createDefaultState(),
       settings: {
         ...createDefaultState().settings,
-        accessMode: 'iam',
         openBehavior: 'new',
         confirmProduction: false,
       },
@@ -413,146 +412,19 @@ describe('PopupApp — favorites', () => {
   });
 });
 
-describe('PopupApp — first-run access mode', () => {
-  async function seedUnset(): Promise<void> {
-    const base = createDefaultState();
-    await saveAppState({
-      ...base,
-      settings: { ...base.settings, accessMode: 'unset' },
-      profiles: [createProfile(draft())],
-    });
-  }
-
-  it('asks which access path to use before showing any profile', async () => {
-    await seedUnset();
-    render(<PopupApp />);
-
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'How do you use AWS?' })).toBeDefined(),
-    );
-    expect(screen.queryByRole('listbox')).toBeNull();
-    expect(screen.queryByLabelText('Search profiles')).toBeNull();
-  });
-
-  it('discloses that Identity Center needs portal access before it is chosen', async () => {
-    await seedUnset();
-    render(<PopupApp />);
-
-    await waitFor(() => screen.getByRole('button', { name: /SSO/ }));
-    expect(screen.getByText('Needs access to your AWS access portal')).toBeDefined();
-  });
-
-  it('persists the Identity Center choice and leaves the question behind', async () => {
-    await seedUnset();
-    render(<PopupApp />);
-    const user = userEvent.setup();
-
-    await user.click(await waitFor(() => screen.getByRole('button', { name: /SSO/ })));
-
-    await waitFor(async () => {
-      expect((await loadAppState()).settings.accessMode).toBe('sso');
-    });
-    await waitFor(() =>
-      expect(screen.queryByRole('heading', { name: 'How do you use AWS?' })).toBeNull(),
-    );
-  });
-
-  it('persists the IAM choice and shows the profile list', async () => {
-    await seedUnset();
-    render(<PopupApp />);
-    const user = userEvent.setup();
-
-    await user.click(await waitFor(() => screen.getByRole('button', { name: /IAM roles/ })));
-
-    await waitFor(async () => {
-      expect((await loadAppState()).settings.accessMode).toBe('iam');
-    });
-    await waitFor(() => expect(screen.getByRole('listbox')).toBeDefined());
-  });
-});
-
-describe('PopupApp — access mode separation', () => {
-  function ssoDraft(): ReturnType<typeof profileDraftSchema.parse> {
-    return profileDraftSchema.parse({
-      type: 'sso',
-      name: 'Platform access',
-      accountId: '222222222222',
-      roleName: 'PlatformAccess',
-      portalUrl: 'https://example.awsapps.com/start',
-      environment: 'other',
-      favorite: false,
-      tags: [],
-    });
-  }
-
-  async function seedBothKinds(accessMode: 'iam' | 'sso'): Promise<void> {
-    const base = createDefaultState();
-    await saveAppState({
-      ...base,
-      settings: { ...base.settings, accessMode },
-      profiles: [createProfile(draft()), createProfile(ssoDraft())],
-    });
-  }
-
-  it('shows only IAM profiles in IAM mode', async () => {
-    await seedBothKinds('iam');
-    render(<PopupApp />);
-
-    await waitFor(() => expect(screen.getByText('Production admin')).toBeDefined());
-    expect(screen.queryByText('Platform access')).toBeNull();
-  });
-
-  it('shows only Identity Center profiles in Identity Center mode', async () => {
-    await seedBothKinds('sso');
-    render(<PopupApp />);
-
-    await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
-    expect(screen.queryByText('Production admin')).toBeNull();
-  });
-
-  it('marks the active mode in the switcher', async () => {
-    await seedBothKinds('sso');
-    render(<PopupApp />);
-
-    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access mode' }));
-    const states = within(group)
-      .getAllByRole('radio')
-      .map((option) => option.getAttribute('aria-checked'));
-    expect(states).toEqual(['false', 'true']);
-  });
-
-  it('says the list holds profiles for the other mode and switches to them', async () => {
-    await seedBothKinds('iam');
-    render(<PopupApp />);
-    const user = userEvent.setup();
-
-    await waitFor(() => expect(screen.getByText('This list also has SSO profiles.')).toBeDefined());
-    await user.click(screen.getByRole('button', { name: 'Switch to SSO' }));
-
-    await waitFor(async () => {
-      expect((await loadAppState()).settings.accessMode).toBe('sso');
-    });
-    await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
-  });
-
-  it('keeps quiet when the list only holds the active mode', async () => {
-    await seed(draft());
-    render(<PopupApp />);
-
-    await waitFor(() => expect(screen.getByText('Production admin')).toBeDefined());
-    expect(screen.queryByText('This list also has SSO profiles.')).toBeNull();
-  });
-});
-
 describe('PopupApp — SSO mode entry points', () => {
   const PORTAL = 'https://ssoins-1234567890abcdef.portal.eu-west-1.app.aws';
 
-  async function seedMode(accessMode: 'iam' | 'sso', profiles: ReturnType<typeof draft>[] = []) {
+  const IAM_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SSO_LIST_ID = '00000000-0000-4000-8000-000000000002';
+
+  /** The active list is the context now: the SSO list means discovery, anything else IAM. */
+  async function seedList(listId: string, profiles: ReturnType<typeof draft>[] = []) {
     const base = createDefaultState();
     await saveAppState({
       ...base,
-      settings: { ...base.settings, accessMode },
-      profiles: profiles.map((entry) => createProfile(entry)),
+      activeProfileListId: listId,
+      profiles: profiles.map((entry) => ({ ...createProfile(entry), listId })),
     });
   }
 
@@ -575,7 +447,7 @@ describe('PopupApp — SSO mode entry points', () => {
   }
 
   it('tells the user what to do in each mode', async () => {
-    await seedMode('sso', [ssoProfile()]);
+    await seedList(SSO_LIST_ID, [ssoProfile()]);
     render(<PopupApp />);
 
     await waitFor(() =>
@@ -587,23 +459,8 @@ describe('PopupApp — SSO mode entry points', () => {
     );
   });
 
-  it('moves to the SSO list when the switcher changes mode', async () => {
-    await seedMode('iam', [draft()]);
-    render(<PopupApp />);
-    const user = userEvent.setup();
-
-    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access mode' }));
-    await user.click(within(group).getAllByRole('radio')[1]!);
-
-    await waitFor(async () => {
-      const stored = await loadAppState();
-      expect(stored.activeProfileListId).toBe('00000000-0000-4000-8000-000000000002');
-      expect(stored.settings.accessMode).toBe('sso');
-    });
-  });
-
   it('points an empty SSO list at discovery rather than at import', async () => {
-    await seedMode('sso');
+    await seedList(SSO_LIST_ID);
     render(<PopupApp />);
 
     await waitFor(() =>
@@ -614,7 +471,7 @@ describe('PopupApp — SSO mode entry points', () => {
   });
 
   it('keeps the IAM empty state on import', async () => {
-    await seedMode('iam');
+    await seedList(IAM_LIST_ID);
     render(<PopupApp />);
 
     await waitFor(() =>
@@ -637,7 +494,7 @@ describe('PopupApp — SSO mode entry points', () => {
   }
 
   it('scans the portal inside the popup and keeps the selection', async () => {
-    await seedMode('sso', [ssoProfile()]);
+    await seedList(SSO_LIST_ID, [ssoProfile()]);
     const create = mockPortalTab(`${PORTAL}/#/`);
     vi.mocked(hasPortalAccess).mockResolvedValue(true);
     vi.mocked(discoverPortalProfiles).mockResolvedValue({
@@ -663,7 +520,7 @@ describe('PopupApp — SSO mode entry points', () => {
   });
 
   it('explains a refused permission without leaving the popup', async () => {
-    await seedMode('sso', [ssoProfile()]);
+    await seedList(SSO_LIST_ID, [ssoProfile()]);
     mockPortalTab(`${PORTAL}/#/`);
     vi.mocked(hasPortalAccess).mockResolvedValue(false);
     vi.mocked(requestPortalAccess).mockResolvedValue(false);
@@ -681,11 +538,40 @@ describe('PopupApp — SSO mode entry points', () => {
   });
 
   it('stays quiet about scanning when the tab is not a portal', async () => {
-    await seedMode('sso', [ssoProfile()]);
+    await seedList(SSO_LIST_ID, [ssoProfile()]);
     mockPortalTab('https://eu-west-1.console.aws.amazon.com/console/home');
     render(<PopupApp />);
 
     await waitFor(() => expect(screen.getByText('Platform access')).toBeDefined());
     expect(screen.queryByRole('button', { name: 'Scan this portal' })).toBeNull();
+  });
+});
+
+describe('PopupApp — the IAM and SSO switcher', () => {
+  const IAM_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SSO_LIST_ID = '00000000-0000-4000-8000-000000000002';
+
+  it('shows both ways into AWS and moves between their lists', async () => {
+    await seed(draft());
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access path' }));
+    const [iam, sso] = within(group).getAllByRole('radio');
+    expect(iam?.getAttribute('aria-checked')).toBe('true');
+
+    await user.click(sso!);
+
+    await waitFor(async () => {
+      expect((await loadAppState()).activeProfileListId).toBe(SSO_LIST_ID);
+    });
+    // It selects a list rather than storing a preference, so settings stay untouched.
+    const stored = await loadAppState();
+    expect(Object.keys(stored.settings)).not.toContain('accessMode');
+
+    await user.click(within(group).getAllByRole('radio')[0]!);
+    await waitFor(async () => {
+      expect((await loadAppState()).activeProfileListId).toBe(IAM_LIST_ID);
+    });
   });
 });

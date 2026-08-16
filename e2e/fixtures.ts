@@ -199,7 +199,6 @@ export async function seed(page: Page, options: SeedOptions = {}): Promise<void>
     activeProfileListId: DEFAULT_LIST_ID,
     defaultProfileListId: DEFAULT_LIST_ID,
     settings: {
-      accessMode: 'iam',
       theme: 'system',
       language: 'system',
       openBehavior: 'new',

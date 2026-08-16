@@ -143,6 +143,21 @@ export function parseAwsConfig(input: string): AwsConfigImportResult {
   return { profiles, issues, ignored, credentialsIgnored };
 }
 
+/**
+ * A malformed ARN is far easier to fix when the message names what is wrong with
+ * it. Lists carried between tools sometimes pick up a space after `iam::`, and the
+ * generic message left the reader guessing.
+ */
+function describeRoleProfileIssue(roleArn: string | undefined): string {
+  if (roleArn === undefined) {
+    return 'Role profile requires both an account ID or alias and a role name.';
+  }
+  if (/\s/.test(roleArn)) {
+    return 'Role ARN cannot contain spaces. Remove the space, for example in "iam:: 123456789012".';
+  }
+  return 'Role ARN must contain a supported partition, 12-digit account ID, and role name.';
+}
+
 function sectionToDraft(
   section: Section,
   ssoSessions: Map<string, Section>,
@@ -237,9 +252,7 @@ function sectionToDraft(
     issues.push({
       line: section.line,
       section: section.name,
-      message: roleArn
-        ? 'Role ARN must contain a supported partition, 12-digit account ID, and role name.'
-        : 'Role profile requires both an account ID or alias and a role name.',
+      message: describeRoleProfileIssue(roleArn),
     });
     return { kind: 'issue' };
   }

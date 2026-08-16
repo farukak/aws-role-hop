@@ -110,9 +110,7 @@ export function OptionsApp() {
           <Brand size={40} />
         </div>
         <nav className="options-nav" aria-label={t('Settings')}>
-          {NAV_ITEMS.filter(
-            ({ id }) => id !== 'discover' || state.settings.accessMode === 'sso',
-          ).map(({ id, label, icon: Icon }) => (
+          {NAV_ITEMS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
