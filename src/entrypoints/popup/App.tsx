@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { browser } from 'wxt/browser';
 import { PortalScan } from './PortalScan';
+import { AccessModeMark, type AccessModeChoice } from '../../components/AccessModeMark';
+import { ChoiceGroup } from '../../components/ChoiceGroup';
 import { Brand } from '../../components/Brand';
 import {
   EnvironmentBadge,
@@ -26,6 +28,8 @@ import { StatusCard } from '../../components/StatusCard';
 import { navigateToProfile, RoleSwitchError } from '../../domain/navigation';
 import {
   builtInListName,
+  DEFAULT_PROFILE_LIST_ID,
+  DEFAULT_SSO_PROFILE_LIST_ID,
   isAllowedPortalUrl,
   isSsoList,
   normalizePortalUrl,
@@ -243,6 +247,21 @@ export function PopupApp() {
           <Settings size={18} strokeWidth={1.8} aria-hidden="true" />
         </button>
       </header>
+
+      <ChoiceGroup className="popup-mode-switch" label={t('Access path')}>
+        <PathOption
+          mode="iam"
+          label={t('IAM')}
+          selected={state.activeProfileListId === DEFAULT_PROFILE_LIST_ID}
+          onSelect={() => void selectProfileList(DEFAULT_PROFILE_LIST_ID)}
+        />
+        <PathOption
+          mode="sso"
+          label={t('SSO')}
+          selected={state.activeProfileListId === DEFAULT_SSO_PROFILE_LIST_ID}
+          onSelect={() => void selectProfileList(DEFAULT_SSO_PROFILE_LIST_ID)}
+        />
+      </ChoiceGroup>
 
       <p className="popup-guidance">
         {ssoContext
@@ -526,6 +545,34 @@ export function PopupApp() {
         />
       )}
     </main>
+  );
+}
+
+interface PathOptionProps {
+  mode: AccessModeChoice;
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}
+
+/**
+ * Shows both ways into AWS on the screen the user actually opens. Choosing one
+ * selects that built-in list; nothing is written to preferences.
+ */
+function PathOption({ mode, label, selected, onSelect }: PathOptionProps) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      tabIndex={selected ? 0 : -1}
+      className="popup-mode-option"
+      data-selected={selected || undefined}
+      onClick={onSelect}
+    >
+      <AccessModeMark mode={mode} size={16} />
+      {label}
+    </button>
   );
 }
 

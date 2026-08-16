@@ -546,3 +546,32 @@ describe('PopupApp — SSO mode entry points', () => {
     expect(screen.queryByRole('button', { name: 'Scan this portal' })).toBeNull();
   });
 });
+
+describe('PopupApp — the IAM and SSO switcher', () => {
+  const IAM_LIST_ID = '00000000-0000-4000-8000-000000000001';
+  const SSO_LIST_ID = '00000000-0000-4000-8000-000000000002';
+
+  it('shows both ways into AWS and moves between their lists', async () => {
+    await seed(draft());
+    render(<PopupApp />);
+    const user = userEvent.setup();
+
+    const group = await waitFor(() => screen.getByRole('radiogroup', { name: 'Access path' }));
+    const [iam, sso] = within(group).getAllByRole('radio');
+    expect(iam?.getAttribute('aria-checked')).toBe('true');
+
+    await user.click(sso!);
+
+    await waitFor(async () => {
+      expect((await loadAppState()).activeProfileListId).toBe(SSO_LIST_ID);
+    });
+    // It selects a list rather than storing a preference, so settings stay untouched.
+    const stored = await loadAppState();
+    expect(Object.keys(stored.settings)).not.toContain('accessMode');
+
+    await user.click(within(group).getAllByRole('radio')[0]!);
+    await waitFor(async () => {
+      expect((await loadAppState()).activeProfileListId).toBe(IAM_LIST_ID);
+    });
+  });
+});

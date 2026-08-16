@@ -48,6 +48,7 @@ const TURKISH_MESSAGES = {
   'Loading settings': 'Ayarlar yükleniyor',
   'Your experience': 'Deneyimin',
   'Control appearance, navigation, and local data.': 'Görünümü, gezinmeyi ve yerel verileri yönet.',
+  'Access path': 'Erişim yolu',
   IAM: 'IAM',
   SSO: 'SSO',
   'Choose between IAM and SSO when you first open AWS Role Hop, and switch access path whenever you want.':
